@@ -1,4 +1,4 @@
-package inventory.home;
+package inventory.screen;
 
 import inventory.dialog.CreateDialog;
 import inventory.model.Product;
