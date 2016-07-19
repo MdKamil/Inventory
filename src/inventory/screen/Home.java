@@ -11,7 +11,6 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -49,8 +48,33 @@ public class Home extends Application {
     private MenuBar getMenuBar(){
         Menu menu = new Menu("File");
 
-        MenuItem exit = new MenuItem("Exit");
-        exit.setOnAction(event -> primaryStage.close());
+        MenuItem newProductType = new MenuItem("New");
+        newProductType.setOnAction(event -> {
+            TextInputDialog newProductTypeDialog = new TextInputDialog();
+            newProductTypeDialog.setTitle("Create new ProductType");
+            newProductTypeDialog.setContentText("Enter ProductType:");
+            newProductTypeDialog.setHeaderText(null);
+            newProductTypeDialog.setGraphic(null);
+
+            Node button = newProductTypeDialog.getDialogPane().lookupButton(ButtonType.OK);
+            button.setDisable(true);
+
+            TextField textField = newProductTypeDialog.getEditor();
+            textField.textProperty().addListener((observable, oldValue, newValue) -> {
+                String value = newValue.trim();
+                if(!value.isEmpty()){
+                    button.setDisable(false);
+                }else {
+                    button.setDisable(true);
+                }
+            });
+
+            Optional<String> result = newProductTypeDialog.showAndWait();
+            if(result.isPresent()){
+                String quantity = result.get();
+                System.out.println(quantity);
+            }
+        });
 
         MenuItem sale = new MenuItem("Sale");
         sale.setOnAction(event -> {
@@ -58,11 +82,13 @@ public class Home extends Application {
             salesReport.getSaleReportScreen();
         });
 
-        menu.getItems().addAll(exit,sale);
+        MenuItem exit = new MenuItem("Exit");
+        exit.setOnAction(event -> primaryStage.close());
+
+        menu.getItems().addAll(newProductType,sale,exit);
 
         MenuBar menuBar = new MenuBar();
         menuBar.getMenus().add(menu);
-
         return menuBar;
     }
 
@@ -100,7 +126,6 @@ public class Home extends Application {
         productRateColumn.setCellValueFactory(new PropertyValueFactory<>("productRate"));
 
         tableView.getColumns().addAll(productNameColumn,inStockColumn,productRateColumn);
-
         return tableView;
     }
 
@@ -111,18 +136,13 @@ public class Home extends Application {
         Button createButton = new Button("Add");
         createButton.setStyle(getButtonStyle());
         createButton.setOnAction(e ->{
-            // Create the custom dialog.
+            // Custom dialog.
             Dialog<ButtonType> dialog = new Dialog<>();
             dialog.setTitle("Add Product");
-            dialog.setHeaderText("Enter Product Details");
-
             dialog.getDialogPane().getButtonTypes().addAll(ButtonType.FINISH, ButtonType.CANCEL);
 
-            // Create the username and password labels and fields.
-            GridPane grid = new GridPane();
-            grid.setHgap(10);
-            grid.setVgap(10);
-            grid.setPadding(new Insets(20, 150, 10, 10));
+            VBox vBox = new VBox();
+            vBox.setSpacing(10);
 
             TextField productName = new TextField();
             productName.setPrefWidth(350);
@@ -136,12 +156,9 @@ public class Home extends Application {
             productName.setPrefWidth(350);
             rate.setPromptText("Rate");
 
-            grid.add(productName, 0, 0);
-            grid.add(totalStock, 0, 1);
-            grid.add(rate,0,2);
+            vBox.getChildren().addAll(productName,totalStock,rate);
 
-            dialog.getDialogPane().setContent(grid);
-
+            dialog.getDialogPane().setContent(vBox);
 
             Node finishBtn =  dialog.getDialogPane().lookupButton(ButtonType.FINISH);
             finishBtn.setDisable(true);
@@ -170,9 +187,6 @@ public class Home extends Application {
                 }
             });
 
-
-
-
             Optional<ButtonType> result = dialog.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.FINISH){
                 System.out.println("product added");
@@ -199,17 +213,15 @@ public class Home extends Application {
         addButton.setStyle(getButtonStyle());
         addButton.setOnAction(e ->{
             TextInputDialog inputDialog = new TextInputDialog();
-            inputDialog.setTitle("Update stock");
-            inputDialog.setHeaderText("Update existing stock");
             inputDialog.setContentText("Enter no of units:");
+            inputDialog.setTitle("Update stock");
+            inputDialog.setHeaderText(null);
+            inputDialog.setGraphic(null);
 
             Node button = inputDialog.getDialogPane().lookupButton(ButtonType.OK);
             button.setDisable(true);
 
-
-
             TextField textField = inputDialog.getEditor();
-
             textField.textProperty().addListener((observable, oldValue, newValue) -> {
                 String value = newValue.trim();
                 if(check(value)){
@@ -218,7 +230,6 @@ public class Home extends Application {
                     button.setDisable(true);
                 }
             });
-
 
             Optional<String> result = inputDialog.showAndWait();
             if(result.isPresent()){
@@ -232,16 +243,14 @@ public class Home extends Application {
         reduceButton.setOnAction(e ->{
             TextInputDialog inputDialog = new TextInputDialog();
             inputDialog.setTitle("Update stock");
-            inputDialog.setHeaderText("Update existing stock");
             inputDialog.setContentText("Enter no of units:");
+            inputDialog.setHeaderText(null);
+            inputDialog.setGraphic(null);
 
             Node button = inputDialog.getDialogPane().lookupButton(ButtonType.OK);
             button.setDisable(true);
 
-
-
             TextField textField = inputDialog.getEditor();
-
             textField.textProperty().addListener((observable, oldValue, newValue) -> {
                 String value = newValue.trim();
                 if(check(value)){
@@ -250,7 +259,6 @@ public class Home extends Application {
                     button.setDisable(true);
                 }
             });
-
 
             Optional<String> result = inputDialog.showAndWait();
             if(result.isPresent()){
@@ -281,7 +289,6 @@ public class Home extends Application {
 
 
     private Pane getSaleFooter() {
-
         VBox vBox = new VBox();
         vBox.setAlignment(Pos.CENTER);
         vBox.setPadding(new Insets(15, 12, 15, 12));
@@ -299,7 +306,6 @@ public class Home extends Application {
         saleTable.getColumns().addAll(totalSold,totalAmt);
 
         vBox.getChildren().addAll(saleTable);
-
         return vBox;
     }
 

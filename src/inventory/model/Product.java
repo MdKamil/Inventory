@@ -5,7 +5,9 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
-public abstract class Product {
+public class Product {
+
+    private String productType;
 
     private StringProperty productName;
 
@@ -13,7 +15,8 @@ public abstract class Product {
 
     private IntegerProperty productRate;
 
-    public Product(String productName,int leftInStock,int productRate){
+    public Product(String productName,int leftInStock,int productRate,String productType){
+        this.productType = productType;
         this.productName = new SimpleStringProperty(productName);
         this.leftInStock = new SimpleIntegerProperty(leftInStock);
         this.productRate = new SimpleIntegerProperty(productRate);
@@ -29,5 +32,9 @@ public abstract class Product {
 
     public int getProductRate() {
         return productRate.get();
+    }
+
+    public String getProductType() {
+        return productType;
     }
 }
