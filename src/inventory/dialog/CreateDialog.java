@@ -3,8 +3,6 @@ package inventory.dialog;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.DateCell;
-import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Modality;
@@ -40,12 +38,6 @@ public class CreateDialog {
         });
 
         gridPane.add(createButton,0,4);
-
-        DatePicker datePicker = new DatePicker();
-        datePicker.setDayCellFactory(param -> new DateCell(){
-
-        });
-        gridPane.add(datePicker,0,5);
 
         Scene scene = new Scene(gridPane,400,200);
 

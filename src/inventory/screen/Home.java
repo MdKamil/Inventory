@@ -1,6 +1,5 @@
 package inventory.screen;
 
-import inventory.dialog.CreateDialog;
 import inventory.model.Product;
 import inventory.model.ProductType;
 import javafx.application.Application;
@@ -8,6 +7,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -15,9 +15,9 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
+
+import java.util.Optional;
 
 public class Home extends Application {
 
@@ -32,7 +32,7 @@ public class Home extends Application {
     public void start(Stage primaryStage) throws Exception{
         this.primaryStage = primaryStage;
         Pane mainLayout = getMainLayout();
-        Scene scene = new Scene(mainLayout,400,600);
+        Scene scene = new Scene(mainLayout,700,700);
         primaryStage.setScene(scene);
         primaryStage.setTitle("Inventory");
         primaryStage.show();
@@ -41,20 +41,24 @@ public class Home extends Application {
     private Pane getMainLayout(){
         VBox vBox = new VBox();
         vBox.setSpacing(5);
-        //vBox.setAlignment(Pos.CENTER);
-        vBox.getChildren().addAll(getMenuBar(),getProductComboBox(),getProductTable(),getControlBox(),getSaleView());
+        vBox.setPadding(new Insets(5,5,5,5));
+        vBox.getChildren().addAll(getMenuBar(),getProductComboBox(),getProductTable(),getControlBox(),getSaleFooter());
         return vBox;
     }
 
     private MenuBar getMenuBar(){
         Menu menu = new Menu("File");
 
-        MenuItem menuItem = new MenuItem("Exit");
-        menuItem.setOnAction(event -> {
-            primaryStage.close();
+        MenuItem exit = new MenuItem("Exit");
+        exit.setOnAction(event -> primaryStage.close());
+
+        MenuItem sale = new MenuItem("Sale");
+        sale.setOnAction(event -> {
+            SalesReport salesReport = new SalesReport();
+            salesReport.getSaleReportScreen();
         });
 
-        menu.getItems().add(menuItem);
+        menu.getItems().addAll(exit,sale);
 
         MenuBar menuBar = new MenuBar();
         menuBar.getMenus().add(menu);
@@ -65,8 +69,8 @@ public class Home extends Application {
     private Pane getProductComboBox() {
         HBox hBox = new HBox();
         hBox.setAlignment(Pos.CENTER);
-        hBox.setPadding(new Insets(10, 10, 10, 10));
-        hBox.setSpacing(10);
+        hBox.setPadding(new Insets(5, 5, 5, 5));
+        hBox.setSpacing(5);
 
         ObservableList<ProductType> productTypeList = FXCollections.observableArrayList(
                 ProductType.IceCream,
@@ -100,37 +104,174 @@ public class Home extends Application {
         return tableView;
     }
 
-    private HBox getControlBox() {
+    private Pane getControlBox() {
         HBox hBox = new HBox(10);
         hBox.setAlignment(Pos.CENTER);
 
-        Button createButton = new Button("Create");
+        Button createButton = new Button("Add");
         createButton.setStyle(getButtonStyle());
         createButton.setOnAction(e ->{
-            CreateDialog createDialog = new CreateDialog();
-            createDialog.create();
+            // Create the custom dialog.
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle("Add Product");
+            dialog.setHeaderText("Enter Product Details");
+
+            dialog.getDialogPane().getButtonTypes().addAll(ButtonType.FINISH, ButtonType.CANCEL);
+
+            // Create the username and password labels and fields.
+            GridPane grid = new GridPane();
+            grid.setHgap(10);
+            grid.setVgap(10);
+            grid.setPadding(new Insets(20, 150, 10, 10));
+
+            TextField productName = new TextField();
+            productName.setPrefWidth(350);
+            productName.setPromptText("Product Name");
+
+            TextField totalStock = new TextField();
+            productName.setPrefWidth(350);
+            totalStock.setPromptText("Stock");
+
+            TextField rate = new TextField();
+            productName.setPrefWidth(350);
+            rate.setPromptText("Rate");
+
+            grid.add(productName, 0, 0);
+            grid.add(totalStock, 0, 1);
+            grid.add(rate,0,2);
+
+            dialog.getDialogPane().setContent(grid);
+
+
+            Node finishBtn =  dialog.getDialogPane().lookupButton(ButtonType.FINISH);
+            finishBtn.setDisable(true);
+
+            productName.textProperty().addListener((observable, oldValue, newValue) -> {
+                if(!newValue.trim().isEmpty() && check(totalStock.getText().trim()) && check(rate.getText().trim())){
+                    finishBtn.setDisable(false);
+                }else {
+                    finishBtn.setDisable(true);
+                }
+            });
+
+            totalStock.textProperty().addListener((observable, oldValue, newValue) -> {
+                if(!productName.getText().isEmpty() && check(newValue.trim()) && check(rate.getText().trim())){
+                    finishBtn.setDisable(false);
+                }else {
+                    finishBtn.setDisable(true);
+                }
+            });
+
+            rate.textProperty().addListener((observable, oldValue, newValue) -> {
+                if(!productName.getText().isEmpty() && check(totalStock.getText().trim()) && check(newValue.trim())){
+                    finishBtn.setDisable(false);
+                }else {
+                    finishBtn.setDisable(true);
+                }
+            });
+
+
+
+
+            Optional<ButtonType> result = dialog.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.FINISH){
+                System.out.println("product added");
+            } else {
+                System.out.println("not added");
+            }
+
         });
 
-        Button deleteButton = new Button("Del");
+        Button deleteButton = new Button("Remove");
         deleteButton.setStyle(getButtonStyle());
         deleteButton.setOnAction(e ->{
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Remove Product");
+            alert.setHeaderText(null);
+            alert.setContentText("Do you want to remove the selected product !!!");
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK){
 
+            }
         });
 
-        Button addButton = new Button("Add");
+        Button addButton = new Button("Update Stock");
         addButton.setStyle(getButtonStyle());
         addButton.setOnAction(e ->{
+            TextInputDialog inputDialog = new TextInputDialog();
+            inputDialog.setTitle("Update stock");
+            inputDialog.setHeaderText("Update existing stock");
+            inputDialog.setContentText("Enter no of units:");
 
+            Node button = inputDialog.getDialogPane().lookupButton(ButtonType.OK);
+            button.setDisable(true);
+
+
+
+            TextField textField = inputDialog.getEditor();
+
+            textField.textProperty().addListener((observable, oldValue, newValue) -> {
+                String value = newValue.trim();
+                if(check(value)){
+                    button.setDisable(false);
+                }else {
+                    button.setDisable(true);
+                }
+            });
+
+
+            Optional<String> result = inputDialog.showAndWait();
+            if(result.isPresent()){
+                String quantity = result.get();
+                System.out.println(quantity);
+            }
         });
 
-        Button reduceButton = new Button("Reduce");
+        Button reduceButton = new Button("Sale");
         reduceButton.setStyle(getButtonStyle());
         reduceButton.setOnAction(e ->{
+            TextInputDialog inputDialog = new TextInputDialog();
+            inputDialog.setTitle("Update stock");
+            inputDialog.setHeaderText("Update existing stock");
+            inputDialog.setContentText("Enter no of units:");
 
+            Node button = inputDialog.getDialogPane().lookupButton(ButtonType.OK);
+            button.setDisable(true);
+
+
+
+            TextField textField = inputDialog.getEditor();
+
+            textField.textProperty().addListener((observable, oldValue, newValue) -> {
+                String value = newValue.trim();
+                if(check(value)){
+                    button.setDisable(false);
+                }else {
+                    button.setDisable(true);
+                }
+            });
+
+
+            Optional<String> result = inputDialog.showAndWait();
+            if(result.isPresent()){
+                String quantity = result.get();
+                System.out.println(quantity);
+            }
         });
 
         hBox.getChildren().addAll(createButton,deleteButton,addButton,reduceButton);
         return hBox;
+    }
+
+    private boolean check(String text) {
+        try {
+            Integer.parseInt(text);
+        } catch(NumberFormatException e) {
+            return false;
+        } catch(NullPointerException e) {
+            return false;
+        }
+        return true;
     }
 
     private String getButtonStyle(){
@@ -139,65 +280,27 @@ public class Home extends Application {
     }
 
 
-    private Pane getSaleView() {
+    private Pane getSaleFooter() {
 
         VBox vBox = new VBox();
         vBox.setAlignment(Pos.CENTER);
         vBox.setPadding(new Insets(15, 12, 15, 12));
         vBox.setSpacing(10);
 
-        DatePicker datePicker = new DatePicker();
+        TableView saleTable = new TableView();
+        saleTable.setPrefHeight(100);
 
-        vBox.getChildren().add(datePicker);
+        TableColumn totalSold = new TableColumn("Total Sold");
+        totalSold.setMinWidth(200);
+
+        TableColumn totalAmt = new TableColumn("Total Amt");
+        totalAmt.setMinWidth(200);
+
+        saleTable.getColumns().addAll(totalSold,totalAmt);
+
+        vBox.getChildren().addAll(saleTable);
+
         return vBox;
-    }
-
-
-    private GridPane getSalentryView(){
-        GridPane gridPane = new GridPane();
-        gridPane.setHgap(10);
-        gridPane.setVgap(10);
-        gridPane.setPadding(new Insets(10,10,10,10));
-        gridPane.setAlignment(Pos.CENTER);
-
-        Label saleLabel = new Label("Today's Sale");
-        saleLabel.setFont(Font.font("Ubuntu", FontWeight.BOLD, 25));
-        gridPane.add(saleLabel,0,1,2,1);
-
-        Label noOfIceCreamSold = new Label("IceCream Sold:");
-        noOfIceCreamSold.setFont(Font.font("Ubuntu", FontWeight.NORMAL, 15));
-        gridPane.add(noOfIceCreamSold,0,2);
-
-        Label noOfIceCreamSoldCnt = new Label("0");
-        noOfIceCreamSoldCnt.setFont(Font.font("Ubuntu", FontWeight.NORMAL, 15));
-        gridPane.add(noOfIceCreamSoldCnt,1,2);
-
-        Label totalIceCreamSale = new Label("IceCream Sale:");
-        totalIceCreamSale.setFont(Font.font("Ubuntu", FontWeight.NORMAL, 15));
-        gridPane.add(totalIceCreamSale,0,3);
-
-        Label totalIceCreamSaleAmt = new Label("0");
-        totalIceCreamSaleAmt.setFont(Font.font("Ubuntu", FontWeight.NORMAL, 15));
-        gridPane.add(totalIceCreamSaleAmt,1,3);
-
-
-        Label noOfSoftDrinkSold = new Label("SoftDrink Sold:");
-        noOfSoftDrinkSold.setFont(Font.font("Ubuntu", FontWeight.NORMAL, 15));
-        gridPane.add(noOfSoftDrinkSold,0,4);
-
-        Label noOfSoftDrinkSoldCnt = new Label("0");
-        noOfSoftDrinkSoldCnt.setFont(Font.font("Ubuntu", FontWeight.NORMAL, 15));
-        gridPane.add(noOfSoftDrinkSoldCnt,1,4);
-
-        Label totalSoftDrinkSale = new Label("SoftDrink Sale:");
-        totalSoftDrinkSale.setFont(Font.font("Ubuntu", FontWeight.NORMAL, 15));
-        gridPane.add(totalSoftDrinkSale,0,5);
-
-        Label totalSoftDrinkSaleAmt = new Label("0");
-        totalSoftDrinkSaleAmt.setFont(Font.font("Ubuntu", FontWeight.NORMAL, 15));
-        gridPane.add(totalSoftDrinkSaleAmt,1,5);
-
-        return gridPane;
     }
 
 }
