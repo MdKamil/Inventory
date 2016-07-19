@@ -14,7 +14,7 @@ public class Product {
     private IntegerProperty leftInStock;
 
     private IntegerProperty productRate;
-
+    
     public Product(String productName,int leftInStock,int productRate,String productType){
         this.productType = productType;
         this.productName = new SimpleStringProperty(productName);
