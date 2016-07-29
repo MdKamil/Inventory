@@ -2,11 +2,11 @@ package inventory.model;
 
 import java.time.LocalTime;
 
-public class Sale {
+public class SaleReport {
 
     private LocalTime saleTime;
 
-    private ProductType productType;
+    private String productType;
 
     private String productName;
 
@@ -16,7 +16,7 @@ public class Sale {
 
     private Integer saleAmt;
 
-    public Sale(LocalTime saleTime,ProductType productType,String productName,Integer productRate,Integer quantitySold,Integer saleAmt){
+    public SaleReport(LocalTime saleTime, String productType, String productName, Integer productRate, Integer quantitySold, Integer saleAmt){
         this.saleTime = saleTime;
         this.productType = productType;
         this.productName = productName;
@@ -46,7 +46,7 @@ public class Sale {
         return saleTime;
     }
 
-    public ProductType getProductType() {
+    public String getProductType() {
         return productType;
     }
 
