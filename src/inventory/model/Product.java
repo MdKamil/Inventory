@@ -7,19 +7,25 @@ import javafx.beans.property.StringProperty;
 
 public class Product {
 
-    private String productType;
+    private IntegerProperty productID;
+
+    private StringProperty productType;
 
     private StringProperty productName;
 
     private IntegerProperty leftInStock;
 
     private IntegerProperty productRate;
-    
-    public Product(String productName,int leftInStock,int productRate,String productType){
-        this.productType = productType;
+
+    private IntegerProperty netWeight;
+
+    public Product(int productID,String productType,String productName,int leftInStock,int productRate,int netWeight){
+        this.productID = new SimpleIntegerProperty(productID);
+        this.productType = new SimpleStringProperty(productType);
         this.productName = new SimpleStringProperty(productName);
         this.leftInStock = new SimpleIntegerProperty(leftInStock);
         this.productRate = new SimpleIntegerProperty(productRate);
+        this.netWeight = new SimpleIntegerProperty(netWeight);
     }
 
     public int getLeftInStock() {
@@ -35,6 +41,14 @@ public class Product {
     }
 
     public String getProductType() {
-        return productType;
+        return productType.get();
+    }
+
+    public int getNetWeight() {
+        return netWeight.get();
+    }
+
+    public int getProductID() {
+        return productID.get();
     }
 }

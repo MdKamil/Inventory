@@ -1,7 +1,9 @@
 package inventory.screen;
 
+import inventory.dao.DB;
+import inventory.dao.InventoryDAO;
+import inventory.model.DaySale;
 import inventory.model.Product;
-import inventory.model.ProductType;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -15,11 +17,22 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public class Home extends Application {
 
+    private static final Logger logger = LogManager.getLogger(Home.class);
+
+    private ObservableList<String> productTypeList;
+
+    private ObservableList<Product> productList;
+
+    private ObservableList<DaySale> todaySale;
 
     public static void main(String[] args) {
         launch(args);
@@ -29,12 +42,36 @@ public class Home extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception{
+        initVar();
+        //dbInit();
         this.primaryStage = primaryStage;
         Pane mainLayout = getMainLayout();
-        Scene scene = new Scene(mainLayout,700,700);
+        Scene scene = new Scene(mainLayout,810,700);
         primaryStage.setScene(scene);
         primaryStage.setTitle("Inventory");
         primaryStage.show();
+    }
+
+    private void initVar() {
+        productTypeList = FXCollections.observableArrayList();
+        productList = FXCollections.observableArrayList();
+        todaySale = FXCollections.observableArrayList();
+    }
+
+    private void dbInit() {
+        DB.loadDriver();
+
+        List<String> pTypeList = InventoryDAO.retrieveProductType();
+        productTypeList.addAll(pTypeList);
+
+        List<Product> pList = InventoryDAO.retrieveProduct();
+        productList.addAll(pList);
+
+        if(InventoryDAO.checkSaleReportTable()) {
+            DaySale daySale = InventoryDAO.getTodaySaleReport(LocalDate.now());
+            todaySale.add(daySale);
+        }
+
     }
 
     private Pane getMainLayout(){
@@ -69,21 +106,28 @@ public class Home extends Application {
                 }
             });
 
-            Optional<String> result = newProductTypeDialog.showAndWait();
-            if(result.isPresent()){
-                String quantity = result.get();
-                System.out.println(quantity);
+            Optional<String> optional = newProductTypeDialog.showAndWait();
+            if(optional.isPresent()){
+                String typeName = optional.get().trim();
+                boolean result = InventoryDAO.updateProductTypeTable(typeName);
+                if(result){
+                    productTypeList.add(typeName);
+                }
+                textField.clear();
             }
         });
 
-        MenuItem sale = new MenuItem("Sale");
+        MenuItem sale = new MenuItem("SaleReport");
         sale.setOnAction(event -> {
             SalesReport salesReport = new SalesReport();
             salesReport.getSaleReportScreen();
         });
 
         MenuItem exit = new MenuItem("Exit");
-        exit.setOnAction(event -> primaryStage.close());
+        exit.setOnAction(event -> {
+            logger.info("APPLICATION SHUTDOWN");
+            primaryStage.close();
+        });
 
         menu.getItems().addAll(newProductType,sale,exit);
 
@@ -98,11 +142,7 @@ public class Home extends Application {
         hBox.setPadding(new Insets(5, 5, 5, 5));
         hBox.setSpacing(5);
 
-        ObservableList<ProductType> productTypeList = FXCollections.observableArrayList(
-                ProductType.IceCream,
-                ProductType.SoftDrink
-        );
-        ComboBox<ProductType> comboBox = new ComboBox<>();
+        ComboBox<String> comboBox = new ComboBox<>();
         comboBox.setPromptText("Product");
         comboBox.getItems().addAll(productTypeList);
 
@@ -125,7 +165,11 @@ public class Home extends Application {
         productRateColumn.setMinWidth(200);
         productRateColumn.setCellValueFactory(new PropertyValueFactory<>("productRate"));
 
-        tableView.getColumns().addAll(productNameColumn,inStockColumn,productRateColumn);
+        TableColumn<Product,Integer> netWeightColumn = new TableColumn<>("Net.Wt");
+        netWeightColumn.setMinWidth(200);
+        netWeightColumn.setCellValueFactory(new PropertyValueFactory<>("netWeight"));
+
+        tableView.getColumns().addAll(productNameColumn,inStockColumn,productRateColumn,netWeightColumn);
         return tableView;
     }
 
@@ -136,6 +180,7 @@ public class Home extends Application {
         Button createButton = new Button("Add");
         createButton.setStyle(getButtonStyle());
         createButton.setOnAction(e ->{
+
             // Custom dialog.
             Dialog<ButtonType> dialog = new Dialog<>();
             dialog.setTitle("Add Product");
@@ -144,19 +189,28 @@ public class Home extends Application {
             VBox vBox = new VBox();
             vBox.setSpacing(10);
 
+            ChoiceBox productType = new ChoiceBox();
+            productType.setItems(FXCollections.observableArrayList(
+                    "Icecream","SoftDrink")
+            );
+
             TextField productName = new TextField();
             productName.setPrefWidth(350);
             productName.setPromptText("Product Name");
 
             TextField totalStock = new TextField();
-            productName.setPrefWidth(350);
+            totalStock.setPrefWidth(350);
             totalStock.setPromptText("Stock");
 
             TextField rate = new TextField();
-            productName.setPrefWidth(350);
+            rate.setPrefWidth(350);
             rate.setPromptText("Rate");
 
-            vBox.getChildren().addAll(productName,totalStock,rate);
+            TextField netWeight = new TextField();
+            netWeight.setPrefWidth(350);
+            netWeight.setPromptText("Net Weight");
+
+            vBox.getChildren().addAll(productType,productName,totalStock,rate,netWeight);
 
             dialog.getDialogPane().setContent(vBox);
 
@@ -238,7 +292,7 @@ public class Home extends Application {
             }
         });
 
-        Button reduceButton = new Button("Sale");
+        Button reduceButton = new Button("SaleReport");
         reduceButton.setStyle(getButtonStyle());
         reduceButton.setOnAction(e ->{
             TextInputDialog inputDialog = new TextInputDialog();
@@ -294,13 +348,15 @@ public class Home extends Application {
         vBox.setPadding(new Insets(15, 12, 15, 12));
         vBox.setSpacing(10);
 
-        TableView saleTable = new TableView();
+        TableView<DaySale> saleTable = new TableView<>();
         saleTable.setPrefHeight(100);
 
-        TableColumn totalSold = new TableColumn("Total Sold");
+        TableColumn<DaySale,Integer> totalSold = new TableColumn<>("Total Sold");
+        totalSold.setCellValueFactory(new PropertyValueFactory<>("quantitySold"));
         totalSold.setMinWidth(200);
 
-        TableColumn totalAmt = new TableColumn("Total Amt");
+        TableColumn<DaySale,Integer> totalAmt = new TableColumn<>("Total Amt");
+        totalAmt.setCellValueFactory(new PropertyValueFactory<>("saleAmt"));
         totalAmt.setMinWidth(200);
 
         saleTable.getColumns().addAll(totalSold,totalAmt);

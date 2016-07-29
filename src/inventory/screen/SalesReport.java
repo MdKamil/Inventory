@@ -1,6 +1,8 @@
 package inventory.screen;
 
-import inventory.model.Sale;
+import inventory.dao.InventoryDAO;
+import inventory.model.SaleReport;
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -8,21 +10,32 @@ import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+
 public class SalesReport {
 
     private Stage saleStage = null;
 
+    private List<SaleReport> list = FXCollections.observableArrayList();
+
     public void getSaleReportScreen(){
 
         DatePicker saleReportDatePicker = new DatePicker();
+        saleReportDatePicker.setValue(LocalDate.now());
         saleReportDatePicker.setShowWeekNumbers(true);
 
         Button saleReportBtn = new Button("Go");
+        saleReportBtn.setOnAction(event -> {
+            list = InventoryDAO.getSaleRecord(saleReportDatePicker.getValue());
+        });
 
         HBox hBox = new HBox();
         hBox.setSpacing(5);
@@ -31,7 +44,7 @@ public class SalesReport {
         hBox.getChildren().addAll(saleReportDatePicker,saleReportBtn);
 
 
-        TableView<Sale> saleTableView = getSaleReportTable();
+        TableView<SaleReport> saleTableView = getSaleReportTable();
 
         Button closeSaleViewBtn = new Button("Exit");
         closeSaleViewBtn.setOnAction(e -> saleStage.close() );
@@ -60,25 +73,31 @@ public class SalesReport {
         saleStage.showAndWait();
     }
 
-    private TableView<Sale> getSaleReportTable(){
-        TableView<Sale> saleTableView = new TableView<>();
+    private TableView<SaleReport> getSaleReportTable(){
+        TableView<SaleReport> saleTableView = new TableView<>();
 
-        TableColumn timeOfSale = new TableColumn("Time");
+        TableColumn<SaleReport,LocalTime> timeOfSale = new TableColumn<>("Time");
+        timeOfSale.setCellValueFactory(new PropertyValueFactory<>("saleTime"));
         timeOfSale.setMinWidth(200);
 
-        TableColumn productType = new TableColumn("Product Type");
+        TableColumn<SaleReport,String> productType = new TableColumn<>("Product Type");
+        productType.setCellValueFactory(new PropertyValueFactory<>("productType"));
         productType.setMinWidth(200);
 
-        TableColumn productName = new TableColumn("Product Name");
+        TableColumn<SaleReport,String> productName = new TableColumn<>("Product Name");
+        productName.setCellValueFactory(new PropertyValueFactory<>("productName"));
         productName.setMinWidth(200);
 
-        TableColumn productRate = new TableColumn("Rate");
+        TableColumn<SaleReport,Integer> productRate = new TableColumn<>("Rate");
+        productRate.setCellValueFactory(new PropertyValueFactory<>("productRate"));
         productRate.setMinWidth(200);
 
-        TableColumn quantitySold = new TableColumn("Quantity Sold");
+        TableColumn<SaleReport,Integer> quantitySold = new TableColumn<>("Quantity Sold");
+        quantitySold.setCellValueFactory(new PropertyValueFactory<>("quantitySold"));
         quantitySold.setMinWidth(200);
 
-        TableColumn saleAmt = new TableColumn("Amt");
+        TableColumn<SaleReport,Integer> saleAmt = new TableColumn<>("Amt");
+        saleAmt.setCellValueFactory(new PropertyValueFactory<>("saleAmt"));
         saleAmt.setMinWidth(200);
 
         saleTableView.getColumns().addAll(timeOfSale,productType,productName,productRate,quantitySold,saleAmt);
