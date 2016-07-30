@@ -10,7 +10,6 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class InventoryDAO {
@@ -24,11 +23,11 @@ public class InventoryDAO {
             ResultSet tables = dbm.getTables(null, null, tableName, null);
             if (tables.next()) {
                 // Table exists.
-                logger.info("TABLE: " + tableName + " EXISTS IN DB");
+                logger.info("TABLE " + tableName + " EXISTS IN DB");
                 result = true;
             } else {
                 // Table does not exist.
-                logger.info("TABLE DOESN'T EXISTS");
+                logger.info("TABLE "+tableName+" DOESN'T EXISTS");
             }
         }catch(Exception e){
             logger.error("ERROR WHILE INSPECTING PRESENCE OF TABLE: "+e);
@@ -50,9 +49,8 @@ public class InventoryDAO {
     }
 
     public static List<String> retrieveProductType(){
-        List<String> list = null;
+        List<String> list = list = new ArrayList<>();
         try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()){
-            list = new ArrayList<>();
             String sql = "SELECT * FROM PRODUCT_TYPE";
             ResultSet resultSet = statement.executeQuery(sql);
             while(resultSet.next()){
@@ -61,7 +59,6 @@ public class InventoryDAO {
             }
             resultSet.close();
         }catch (Exception e){
-            list = Collections.emptyList();
             logger.error("ERROR RETRIEVING PRODUCT_TYPE: "+e);
         }
         return list;
@@ -88,7 +85,7 @@ public class InventoryDAO {
     public static boolean createProductTable() {
         boolean result = false;
         try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()) {
-            String sql = "CREATE TABLE PRODUCT(product_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, product_type VARCHAR(100) NOT NULL, product_name VARCHAR(100) NOT NULL, stock INT NOT NULL, rate INT NOT NULL, netWeight INT NOT NULL, PRIMARY KEY(product_id), FOREIGN KEY(product_type) REFERENCES PRODUCT_TYPE(type_id))";
+            String sql = "CREATE TABLE PRODUCT(product_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, product_type VARCHAR(100) NOT NULL, product_name VARCHAR(100) NOT NULL, stock INT NOT NULL, rate INT NOT NULL, netWeight INT NOT NULL, PRIMARY KEY(product_id), FOREIGN KEY(product_type) REFERENCES PRODUCT_TYPE(type_name))";
             statement.executeUpdate(sql);
             logger.info("PRODUCT TABLE CREATED SUCCESSFULLY");
             result = true;
@@ -99,11 +96,10 @@ public class InventoryDAO {
     }
 
     public static List<Product> retrieveProduct() {
-        List<Product> list = null;
+        List<Product> list = new ArrayList<>();
         try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()){
             String sql = "SELECT * FROM PRODUCT";
             ResultSet resultSet = statement.executeQuery(sql);
-            list = new ArrayList<>();
             while(resultSet.next()){
                 int id = resultSet.getInt("product_id");
                 String type = resultSet.getString("product_type");
@@ -116,7 +112,6 @@ public class InventoryDAO {
             }
             resultSet.close();
         }catch (Exception e){
-            list = Collections.emptyList();
             logger.error("ERROR WHILE RETRIEVING PRODUCT: "+e);
         }
         return list;
@@ -237,7 +232,7 @@ public class InventoryDAO {
     public static boolean createSaleReportTable(){
         boolean result = false;
         try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()){
-            String sql = "CREATE TABLE SALE_REPORT(sale_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, product_id INT NOT NULL, sale_day DATE NOT NULL, sale_time TIME NOT NULL, quantity_sold INT NOT NULL, sale_amt INT NOT NULL, PRIMARY KEY(sale_id), FOREIGN KEY(product_id) REFERENCES PRODUCT(product_id)";
+            String sql = "CREATE TABLE SALE_REPORT(sale_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, product_id INT NOT NULL, sale_day DATE NOT NULL, sale_time TIME NOT NULL, quantity_sold INT NOT NULL, sale_amt INT NOT NULL, PRIMARY KEY(sale_id), FOREIGN KEY(product_id) REFERENCES PRODUCT(product_id))";
             int count = statement.executeUpdate(sql);
             result = true;
             logger.error("SUCCESSFULLY CREATED SALE_REPORT TABLE    ");
@@ -283,15 +278,14 @@ public class InventoryDAO {
 
 
     public static List<SaleReport> getSaleRecord(LocalDate date){
-        List<SaleReport> saleList = null;
+        List<SaleReport> saleList = new ArrayList<>();
         try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement statement = getSaleRecordPS(connection,date)){
-            saleList = new ArrayList<>();
             ResultSet rs = statement.executeQuery();
             while(rs.next()){
                 Time saleTime = rs.getTime("sale_time");
                 String productType = rs.getString("product_type");
                 String productName = rs.getString("product_name");
-                Integer productRate = rs.getInt("product_rate");
+                Integer productRate = rs.getInt("rate");
                 Integer quantitySold = rs.getInt("quantity_sold");
                 Integer saleAmt = rs.getInt("sale_amt");
 
@@ -300,14 +294,13 @@ public class InventoryDAO {
             }
             rs.close();
         }catch (Exception e){
-            saleList = Collections.emptyList();
             logger.error("COULDN'T RETRIEVE SALE REPORT: "+e);
         }
         return saleList;
     }
 
     private static PreparedStatement getSaleRecordPS(Connection connection,LocalDate date) throws SQLException{
-        String sql = "SELECT product_type,product_name,product_rate,sale_time,quantity_sold,sale_amt FROM PRODUCT JOIN SALE_REPORT ON PRODUCT.product_id = SALE_REPORT.product_id WHERE SALE_REPORT.sale_day = ?";
+        String sql = "SELECT product_type,product_name,rate,sale_time,quantity_sold,sale_amt FROM PRODUCT JOIN SALE_REPORT ON PRODUCT.product_id = SALE_REPORT.product_id WHERE SALE_REPORT.sale_day = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setDate(1,Date.valueOf(date));
         return preparedStatement;
@@ -318,8 +311,8 @@ public class InventoryDAO {
         try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getTodaySalePS(connection,date)){
             ResultSet rs = ps.executeQuery();
             while (rs.next()){
-                Integer quantitySold = rs.getInt("quantity_sold");
-                Integer saleAmt = rs.getInt("sale_amt");
+                Integer quantitySold = rs.getInt(1);
+                Integer saleAmt = rs.getInt(2);
                 daySale = new DaySale(quantitySold,saleAmt);
             }
             rs.close();
@@ -331,16 +324,15 @@ public class InventoryDAO {
     }
 
     private static PreparedStatement getTodaySalePS(Connection connection, LocalDate date) throws SQLException{
-        String sql = "SELECT SUM(quantity_sold), SUM(sale_amt) FROM SALE_REPORT WHERE sale_month = ?";
+        String sql = "SELECT SUM(quantity_sold), SUM(sale_amt) FROM SALE_REPORT WHERE sale_day = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setDate(1,Date.valueOf(date));
         return preparedStatement;
     }
 
     public static List<Product> getProductOfType(String newSelectedType) {
-        List<Product> list = null;
-        try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getPoductOfTypePS(connection,newSelectedType)){
-            list = new ArrayList<>();
+        List<Product> list = new ArrayList<>();
+        try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getProductOfTypePS(connection,newSelectedType)){
             ResultSet resultSet = ps.executeQuery();
             while(resultSet.next()){
                 int id = resultSet.getInt("product_id");
@@ -354,13 +346,12 @@ public class InventoryDAO {
             }
             resultSet.close();
         }catch (Exception e){
-            list = Collections.EMPTY_LIST;
             logger.error("ERROR WHILE RETRIEVING PARTICULAR PRODUCT_TYPE LIST: "+e);
         }
         return list;
     }
 
-    private static PreparedStatement getPoductOfTypePS(Connection connection, String newSelectedType) throws SQLException{
+    private static PreparedStatement getProductOfTypePS(Connection connection, String newSelectedType) throws SQLException{
         String sql = "SELECT * FOM PRODUCT WHERE product_type = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setString(1,newSelectedType);

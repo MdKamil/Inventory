@@ -51,9 +51,9 @@ public class SalesReport {
 
 
         saleTableView = getSaleReportTable();
-       // List<SaleReport> saleList = InventoryDAO.getSaleRecord(LocalDate.now());
-        //totalSaleList.addAll(saleList);
+        List<SaleReport> saleList = InventoryDAO.getSaleRecord(LocalDate.now());
         totalSaleList = FXCollections.observableArrayList();
+        totalSaleList.addAll(saleList);
         saleTableView.setItems(totalSaleList);
 
         Button closeSaleViewBtn = new Button("Exit");
