@@ -2,7 +2,7 @@ package inventory.screen;
 
 import inventory.dao.InventoryDAO;
 import inventory.model.SaleReport;
-import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -22,9 +22,11 @@ import java.util.List;
 
 public class SalesReport {
 
-    private Stage saleStage = null;
+    private Stage saleStage;
 
-    private List<SaleReport> list = FXCollections.observableArrayList();
+    private ObservableList<SaleReport> totalSaleList;
+
+    private TableView<SaleReport> saleTableView;
 
     public void getSaleReportScreen(){
 
@@ -34,7 +36,10 @@ public class SalesReport {
 
         Button saleReportBtn = new Button("Go");
         saleReportBtn.setOnAction(event -> {
-            list = InventoryDAO.getSaleRecord(saleReportDatePicker.getValue());
+            List<SaleReport> list = InventoryDAO.getSaleRecord(saleReportDatePicker.getValue());
+            totalSaleList.clear();
+            totalSaleList.addAll(list);
+            saleTableView.refresh();
         });
 
         HBox hBox = new HBox();
@@ -44,7 +49,10 @@ public class SalesReport {
         hBox.getChildren().addAll(saleReportDatePicker,saleReportBtn);
 
 
-        TableView<SaleReport> saleTableView = getSaleReportTable();
+        saleTableView = getSaleReportTable();
+        List<SaleReport> saleList = InventoryDAO.getSaleRecord(LocalDate.now());
+        totalSaleList.addAll(saleList);
+        saleTableView.setItems(totalSaleList);
 
         Button closeSaleViewBtn = new Button("Exit");
         closeSaleViewBtn.setOnAction(e -> saleStage.close() );

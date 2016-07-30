@@ -34,6 +34,10 @@ public class Home extends Application {
 
     private ObservableList<DaySale> todaySale;
 
+    private TableView<Product> productTable;
+
+    private ComboBox<String> comboBox;
+
     public static void main(String[] args) {
         launch(args);
     }
@@ -61,15 +65,29 @@ public class Home extends Application {
     private void dbInit() {
         DB.loadDriver();
 
-        List<String> pTypeList = InventoryDAO.retrieveProductType();
-        productTypeList.addAll(pTypeList);
+        if(InventoryDAO.checkTableExists("PRODUCT_TYPE")){
+            List<String> pTypeList = InventoryDAO.retrieveProductType();
+            productTypeList.addAll(pTypeList);
+        }else {
+            InventoryDAO.createProductTypeTable();
+            productTypeList = FXCollections.observableArrayList();
+        }
 
-        List<Product> pList = InventoryDAO.retrieveProduct();
-        productList.addAll(pList);
+        if(InventoryDAO.checkTableExists("PRODUCT")){
+            List<Product> pList = InventoryDAO.retrieveProduct();
+            productList.addAll(pList);
+        }else {
+            InventoryDAO.createProductTable();
+            productList = FXCollections.observableArrayList();
+        }
 
-        if(InventoryDAO.checkSaleReportTable()) {
+        if(InventoryDAO.checkTableExists("SALE_REPORT")){
+            todaySale = FXCollections.observableArrayList();
             DaySale daySale = InventoryDAO.getTodaySaleReport(LocalDate.now());
             todaySale.add(daySale);
+        } else {
+            InventoryDAO.createSaleReportTable();
+            todaySale = FXCollections.observableArrayList();
         }
 
     }
@@ -78,7 +96,14 @@ public class Home extends Application {
         VBox vBox = new VBox();
         vBox.setSpacing(5);
         vBox.setPadding(new Insets(5,5,5,5));
-        vBox.getChildren().addAll(getMenuBar(),getProductComboBox(),getProductTable(),getControlBox(),getSaleFooter());
+
+        MenuBar menuBar = getMenuBar();
+        Pane productTypeCB = getProductComboBox();
+        productTable = getProductTable();
+        Pane controlBox = getControlBox();
+        Pane footer = getSaleFooter();
+
+        vBox.getChildren().addAll(menuBar,productTypeCB,productTable,controlBox,footer);
         return vBox;
     }
 
@@ -109,7 +134,7 @@ public class Home extends Application {
             Optional<String> optional = newProductTypeDialog.showAndWait();
             if(optional.isPresent()){
                 String typeName = optional.get().trim();
-                boolean result = InventoryDAO.updateProductTypeTable(typeName);
+                boolean result = InventoryDAO.updateProductType(typeName);
                 if(result){
                     productTypeList.add(typeName);
                 }
@@ -142,9 +167,21 @@ public class Home extends Application {
         hBox.setPadding(new Insets(5, 5, 5, 5));
         hBox.setSpacing(5);
 
-        ComboBox<String> comboBox = new ComboBox<>();
+        comboBox = new ComboBox<>();
         comboBox.setPromptText("Product");
         comboBox.getItems().addAll(productTypeList);
+
+        comboBox.selectionModelProperty().addListener((observable, oldValue, newValue) -> {
+            String newSelectedType = newValue.getSelectedItem();
+            List<Product> list = InventoryDAO.getProductOfType(newSelectedType);
+            if(list.isEmpty()){
+                // SHOW IN UI;
+            } else {
+                productList.clear();
+                productList.addAll(list);
+                productTable.refresh();
+            }
+        });
 
         hBox.getChildren().add(comboBox);
         return hBox;
@@ -179,7 +216,7 @@ public class Home extends Application {
 
         Button createButton = new Button("Add");
         createButton.setStyle(getButtonStyle());
-        createButton.setOnAction(e ->{
+        createButton.setOnAction(e -> {
 
             // Custom dialog.
             Dialog<ButtonType> dialog = new Dialog<>();
@@ -189,10 +226,9 @@ public class Home extends Application {
             VBox vBox = new VBox();
             vBox.setSpacing(10);
 
-            ChoiceBox productType = new ChoiceBox();
-            productType.setItems(FXCollections.observableArrayList(
-                    "Icecream","SoftDrink")
-            );
+            ComboBox<String> productTypeComboBox = new ComboBox<>();
+            productTypeComboBox.setPromptText("Select ProductType");
+            productTypeComboBox.setItems(productTypeList);
 
             TextField productName = new TextField();
             productName.setPrefWidth(350);
@@ -210,7 +246,7 @@ public class Home extends Application {
             netWeight.setPrefWidth(350);
             netWeight.setPromptText("Net Weight");
 
-            vBox.getChildren().addAll(productType,productName,totalStock,rate,netWeight);
+            vBox.getChildren().addAll(productTypeComboBox,productName,totalStock,rate,netWeight);
 
             dialog.getDialogPane().setContent(vBox);
 
@@ -218,7 +254,7 @@ public class Home extends Application {
             finishBtn.setDisable(true);
 
             productName.textProperty().addListener((observable, oldValue, newValue) -> {
-                if(!newValue.trim().isEmpty() && check(totalStock.getText().trim()) && check(rate.getText().trim())){
+                if(!productTypeComboBox.getValue().isEmpty() && !newValue.trim().isEmpty() && check(totalStock.getText().trim()) && check(rate.getText().trim()) && check(netWeight.getText().trim())){
                     finishBtn.setDisable(false);
                 }else {
                     finishBtn.setDisable(true);
@@ -226,7 +262,7 @@ public class Home extends Application {
             });
 
             totalStock.textProperty().addListener((observable, oldValue, newValue) -> {
-                if(!productName.getText().isEmpty() && check(newValue.trim()) && check(rate.getText().trim())){
+                if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && check(newValue.trim()) && check(rate.getText().trim()) && check(netWeight.getText().trim())){
                     finishBtn.setDisable(false);
                 }else {
                     finishBtn.setDisable(true);
@@ -234,7 +270,15 @@ public class Home extends Application {
             });
 
             rate.textProperty().addListener((observable, oldValue, newValue) -> {
-                if(!productName.getText().isEmpty() && check(totalStock.getText().trim()) && check(newValue.trim())){
+                if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && check(totalStock.getText().trim()) && check(newValue.trim()) && check(netWeight.getText().trim())){
+                    finishBtn.setDisable(false);
+                }else {
+                    finishBtn.setDisable(true);
+                }
+            });
+
+            netWeight.textProperty().addListener((observable, oldValue, newValue) -> {
+                if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && check(totalStock.getText().trim()) && check(newValue.trim()) && check(newValue.trim())){
                     finishBtn.setDisable(false);
                 }else {
                     finishBtn.setDisable(true);
@@ -243,11 +287,20 @@ public class Home extends Application {
 
             Optional<ButtonType> result = dialog.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.FINISH){
-                System.out.println("product added");
-            } else {
-                System.out.println("not added");
+                String pType = productTypeComboBox.getValue().trim();
+                String pName = productName.getText().trim();
+                int pStock = Integer.parseInt(totalStock.getText().trim());
+                int pRate = Integer.parseInt(rate.getText().trim());
+                int pNetWt = Integer.parseInt(netWeight.getText().trim());
+                Product product = InventoryDAO.updateProduct(pType,pName,pStock,pRate,pNetWt);
+                if(product !=null){
+                    productList.add(product);
+                    productTable.refresh();
+                    productTable.getSelectionModel().clearSelection();
+                } else {
+                    // SHOW ERROR IN UI;
+                }
             }
-
         });
 
         Button deleteButton = new Button("Remove");
@@ -259,7 +312,17 @@ public class Home extends Application {
             alert.setContentText("Do you want to remove the selected product !!!");
             Optional<ButtonType> result = alert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK){
-
+                Product product = productTable.getSelectionModel().getSelectedItem();
+                if(product !=null){
+                    boolean rs = InventoryDAO.deleteProduct(product.getProductID());
+                    if(rs){
+                        productList.remove(product);
+                        productTable.refresh();
+                        productTable.getSelectionModel().clearSelection();
+                    }else {
+                        // SHOW IN UI;
+                    }
+                }
             }
         });
 
@@ -287,12 +350,23 @@ public class Home extends Application {
 
             Optional<String> result = inputDialog.showAndWait();
             if(result.isPresent()){
-                String quantity = result.get();
-                System.out.println(quantity);
+                String quantity = result.get().trim();
+                Product product = productTable.getSelectionModel().getSelectedItem();
+                if(product!=null){
+                    int noOfUnit = Integer.parseInt(quantity);
+                    boolean rs = InventoryDAO.updateStock(product.getProductID(),noOfUnit);
+                    if(rs){
+                        product.setLeftInStock(product.getLeftInStock()+noOfUnit);
+                        productTable.refresh();
+                        productTable.getSelectionModel().clearSelection();
+                    } else {
+                        // SHOW IN UI;
+                    }
+                }
             }
         });
 
-        Button reduceButton = new Button("SaleReport");
+        Button reduceButton = new Button("Sell");
         reduceButton.setStyle(getButtonStyle());
         reduceButton.setOnAction(e ->{
             TextInputDialog inputDialog = new TextInputDialog();
@@ -316,8 +390,17 @@ public class Home extends Application {
 
             Optional<String> result = inputDialog.showAndWait();
             if(result.isPresent()){
-                String quantity = result.get();
-                System.out.println(quantity);
+                String quantity = result.get().trim();
+                int noOfUnit = Integer.parseInt(quantity);
+                Product product = productTable.getSelectionModel().getSelectedItem();
+                boolean rs = InventoryDAO.reduceFromStock(product,noOfUnit);
+                if(rs){
+                    product.setLeftInStock(product.getLeftInStock()-noOfUnit);
+                    productTable.refresh();
+                    productTable.getSelectionModel().clearSelection();
+                }else{
+                    // SHOW IN UI;
+                }
             }
         });
 
