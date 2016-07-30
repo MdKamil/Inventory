@@ -352,7 +352,7 @@ public class InventoryDAO {
     }
 
     private static PreparedStatement getProductOfTypePS(Connection connection, String newSelectedType) throws SQLException{
-        String sql = "SELECT * FOM PRODUCT WHERE product_type = ?";
+        String sql = "SELECT * FROM PRODUCT WHERE product_type = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setString(1,newSelectedType);
         return preparedStatement;

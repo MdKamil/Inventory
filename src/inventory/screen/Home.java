@@ -68,8 +68,8 @@ public class Home extends Application {
 
         productList = FXCollections.observableArrayList();
         if(InventoryDAO.checkTableExists("PRODUCT")){
-            List<Product> pList = InventoryDAO.retrieveProduct();
-            productList.addAll(pList);
+            //List<Product> pList = InventoryDAO.retrieveProduct();
+            //productList.addAll(pList);
         }else {
             InventoryDAO.createProductTable();
         }
@@ -146,11 +146,14 @@ public class Home extends Application {
         comboBox = new ComboBox<>(productTypeList);
         comboBox.setPromptText("Product");
 
-        comboBox.selectionModelProperty().addListener((observable, oldValue, newValue) -> {
-            String newSelectedType = newValue.getSelectedItem();
+        comboBox.setOnAction(event -> {
+            String newSelectedType = comboBox.getValue();
             List<Product> list = InventoryDAO.getProductOfType(newSelectedType);
             if(list.isEmpty()){
-                ErrorDialog.show("No products found for given product type !!!");
+                //ErrorDialog.show("No products found for given product type !!!");
+                productList.clear();
+                productList.addAll(list);
+                productTable.refresh();
             } else {
                 productList.clear();
                 productList.addAll(list);
@@ -194,7 +197,10 @@ public class Home extends Application {
         createButton.setOnAction(e -> {
             Product product = CreateProduct.show(productTypeList);
             if(product != null){
-                productList.add(product);
+                String type = comboBox.getValue();
+                if(type.equals(product.getProductType())) {
+                    productList.add(product);
+                }
                 productTable.refresh();
                 productTable.getSelectionModel().clearSelection();
             }
@@ -203,22 +209,23 @@ public class Home extends Application {
         Button deleteButton = new Button("Remove");
         deleteButton.setStyle(getButtonStyle());
         deleteButton.setOnAction(e ->{
-            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-            alert.setTitle("Remove Product");
-            alert.setHeaderText(null);
-            alert.setContentText("Do you want to remove the selected product !!!");
-            Optional<ButtonType> result = alert.showAndWait();
-            if (result.isPresent() && result.get() == ButtonType.OK){
-                Product product = productTable.getSelectionModel().getSelectedItem();
-                if(product !=null){
+            Product product = productTable.getSelectionModel().getSelectedItem();
+            if(product != null){
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Remove Product");
+                alert.setHeaderText(null);
+                alert.setGraphic(null);
+                alert.setContentText("Do you want to remove the selected product !!!");
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.isPresent() && result.get() == ButtonType.OK){
                     boolean rs = InventoryDAO.deleteProduct(product.getProductID());
                     if(rs){
                         productList.remove(product);
-                        productTable.refresh();
-                        productTable.getSelectionModel().clearSelection();
                     }else {
                         ErrorDialog.show("Couldn't remove product !!!");
                     }
+                    productTable.refresh();
+                    productTable.getSelectionModel().clearSelection();
                 }
             }
         });
@@ -229,9 +236,9 @@ public class Home extends Application {
             Product product = productTable.getSelectionModel().getSelectedItem();
             if(product != null) {
                 EditProduct.show(productTypeList, product);
-                productTable.refresh();
-                productTable.getSelectionModel().clearSelection();
             }
+            productTable.refresh();
+            productTable.getSelectionModel().clearSelection();
         });
 
         Button updateButton = new Button("Update Stock");
@@ -241,9 +248,9 @@ public class Home extends Application {
             if(product != null){
                 int noOfUnit = UpdateProduct.show(product,"Update Stock","ADD");
                 product.setLeftInStock(product.getLeftInStock() + noOfUnit);
-                productTable.refresh();
-                productTable.getSelectionModel().clearSelection();
             }
+            productTable.refresh();
+            productTable.getSelectionModel().clearSelection();
         });
 
         Button saleButton = new Button("Sell");
@@ -253,9 +260,9 @@ public class Home extends Application {
             if(product != null){
                 int noOfUnit = UpdateProduct.show(product,"Sell Stock","DEDUCT");
                 product.setLeftInStock(product.getLeftInStock() - noOfUnit);
-                productTable.refresh();
-                productTable.getSelectionModel().clearSelection();
             }
+            productTable.refresh();
+            productTable.getSelectionModel().clearSelection();
         });
 
         hBox.getChildren().addAll(createButton,deleteButton,editButton,updateButton,saleButton);
@@ -274,6 +281,7 @@ public class Home extends Application {
         vBox.setSpacing(10);
 
         TableView<DaySale> saleTable = new TableView<>();
+        saleTable.setItems(todaySale);
         saleTable.setPrefHeight(100);
 
         TableColumn<DaySale,Integer> totalSold = new TableColumn<>("Total Sold");
