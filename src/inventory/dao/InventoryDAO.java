@@ -17,45 +17,29 @@ public class InventoryDAO {
 
     private static final Logger logger = LogManager.getLogger(InventoryDAO.class);
 
-    private static boolean checkTableExists(Connection connection,String tableName) throws SQLException{
+    public static boolean checkTableExists(String tableName) {
         boolean result = false;
-        DatabaseMetaData dbm = connection.getMetaData();
-        ResultSet tables = dbm.getTables(null, null, tableName, null);
-        if (tables.next()) {
-            // Table exists.
-            logger.info("TABLE: "+tableName+" EXISTS IN DB");
-            result = true;
-        } else {
-            // Table does not exist.
-            logger.info("TABLE DOESN'T EXISTS");
+        try (Connection connection = DriverManager.getConnection(DB.dbURL)){
+            DatabaseMetaData dbm = connection.getMetaData();
+            ResultSet tables = dbm.getTables(null, null, tableName, null);
+            if (tables.next()) {
+                // Table exists.
+                logger.info("TABLE: " + tableName + " EXISTS IN DB");
+                result = true;
+            } else {
+                // Table does not exist.
+                logger.info("TABLE DOESN'T EXISTS");
+            }
+        }catch(Exception e){
+            logger.error("ERROR WHILE INSPECTING PRESENCE OF TABLE: "+e);
         }
         return result;
     }
 
-    public static List<String> retrieveProductType(){
-        List<String> list = null;
-        try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()){
-            if(checkTableExists(connection,"PRODUCT_TYPE")){
-               list = getProductType(statement);
-            }else {
-                if(createProductTypeTable(connection)) {
-                    list = getProductType(statement);
-                }else {
-                    list = Collections.emptyList();
-                }
-            }
-        }catch (Exception e){
-            logger.error("ERROR RETRIEVING PRODUCT_TYPE: "+e);
-        }finally {
-            list = Collections.emptyList();
-        }
-        return list;
-    }
-
-    private static boolean createProductTypeTable(Connection connection) {
+    public static boolean createProductTypeTable() {
         boolean result = false;
-        String sql = "CREATE TABLE PRODUCT_TYPE(type_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, type_name VARCHAR(100) NOT NULL, PRIMARY KEY(type_name))";
-        try(Statement statement = connection.createStatement()) {
+        try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()) {
+            String sql = "CREATE TABLE PRODUCT_TYPE(type_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, type_name VARCHAR(100) NOT NULL, PRIMARY KEY(type_name))";
             statement.executeUpdate(sql);
             logger.info("PRODUCT_TYPE TABLE CREATED SUCCESSFULLY");
             result = true;
@@ -65,67 +49,46 @@ public class InventoryDAO {
         return result;
     }
 
-    private static List<String> getProductType(Statement statement) throws SQLException{
-        List<String> list = new ArrayList<>();
-        String sql = "SELECT * FROM PRODUCT_TYPE";
-        ResultSet resultSet = statement.executeQuery(sql);
-        while(resultSet.next()){
-            String name = resultSet.getString("type_name");
-            list.add(name);
+    public static List<String> retrieveProductType(){
+        List<String> list = null;
+        try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()){
+            list = new ArrayList<>();
+            String sql = "SELECT * FROM PRODUCT_TYPE";
+            ResultSet resultSet = statement.executeQuery(sql);
+            while(resultSet.next()){
+                String name = resultSet.getString("type_name");
+                list.add(name);
+            }
+            resultSet.close();
+        }catch (Exception e){
+            list = Collections.emptyList();
+            logger.error("ERROR RETRIEVING PRODUCT_TYPE: "+e);
         }
-        resultSet.close();
         return list;
     }
 
-    public static boolean updateProductTypeTable(String typeName){
+    public static boolean updateProductType(String typeName){
         boolean result = false;
-        try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getPSProductType(connection,typeName);Statement statement = connection.createStatement()) {
-            ps.executeUpdate();
-            String sql = "SELECT type_name FROM PRODUCT_TYPE WHERE type_id = (SELECT MAX(type_id) FROM PRODUCT_TYPE)";
-            ResultSet rs = statement.executeQuery(sql);
-            if(!rs.next()){
-                // NO DATA;
-            }else {
-                result = true;
-            }
-            rs.close();
+        try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = updateProductTypePS(connection,typeName)) {
+            int count = ps.executeUpdate();
+            result = true;
         }catch (Exception e){
             logger.error("ERROR WHILE UPDATING PRODUCT TYPE: "+e);
         }
         return result;
     }
 
-    private static PreparedStatement getPSProductType(Connection connection,String typeName) throws  SQLException{
+    private static PreparedStatement updateProductTypePS(Connection connection,String typeName) throws  SQLException{
         String sql = "INSERT INTO PRODUCT_TYPE(type_name) VALUES(?)";
         PreparedStatement  stmt = connection.prepareStatement(sql);
         stmt.setString(1, typeName);
         return stmt;
     }
 
-    public static List<Product> retrieveProduct() {
-        List<Product> list = null;
-        try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()){
-            if(checkTableExists(connection,"PRODUCT")){
-                list = getProduct(statement);
-            }else {
-                if(createProductTable(connection)) {
-                    list = getProduct(statement);
-                }else {
-                    list = Collections.emptyList();
-                }
-            }
-        }catch (Exception e){
-            logger.error(e);
-        }finally {
-            list = Collections.emptyList();
-        }
-        return list;
-    }
-
-    private static boolean createProductTable(Connection connection) {
+    public static boolean createProductTable() {
         boolean result = false;
-        String sql = "CREATE TABLE PRODUCT(product_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, product_type VARCHAR(100) NOT NULL, product_name VARCHAR(100) NOT NULL, stock INT NOT NULL, rate INT NOT NULL, netWeight INT NOT NULL, PRIMARY KEY(product_id), FOREIGN KEY(product_type) REFERENCES PRODUCT_TYPE(type_id))";
-        try(Statement statement = connection.createStatement()) {
+        try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()) {
+            String sql = "CREATE TABLE PRODUCT(product_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, product_type VARCHAR(100) NOT NULL, product_name VARCHAR(100) NOT NULL, stock INT NOT NULL, rate INT NOT NULL, netWeight INT NOT NULL, PRIMARY KEY(product_id), FOREIGN KEY(product_type) REFERENCES PRODUCT_TYPE(type_id))";
             statement.executeUpdate(sql);
             logger.info("PRODUCT TABLE CREATED SUCCESSFULLY");
             result = true;
@@ -135,85 +98,69 @@ public class InventoryDAO {
         return result;
     }
 
-    private static List<Product> getProduct(Statement statement) throws SQLException{
-        List<Product> list = new ArrayList<>();
-        String sql = "SELECT * FROM PRODUCT";
-        ResultSet resultSet = statement.executeQuery(sql);
-        while(resultSet.next()){
-            int id = resultSet.getInt("product_id");
-            String type = resultSet.getString("product_type");
-            String name = resultSet.getString("product_name");
-            int inStock = resultSet.getInt("stock");
-            int rate = resultSet.getInt("rate");
-            int newWeight = resultSet.getInt("netWeight");
-            Product product = new Product(id,type,name,inStock,rate,newWeight);
-            list.add(product);
+    public static List<Product> retrieveProduct() {
+        List<Product> list = null;
+        try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()){
+            String sql = "SELECT * FROM PRODUCT";
+            ResultSet resultSet = statement.executeQuery(sql);
+            list = new ArrayList<>();
+            while(resultSet.next()){
+                int id = resultSet.getInt("product_id");
+                String type = resultSet.getString("product_type");
+                String name = resultSet.getString("product_name");
+                int inStock = resultSet.getInt("stock");
+                int rate = resultSet.getInt("rate");
+                int newWeight = resultSet.getInt("netWeight");
+                Product product = new Product(id,type,name,inStock,rate,newWeight);
+                list.add(product);
+            }
+            resultSet.close();
+        }catch (Exception e){
+            list = Collections.emptyList();
+            logger.error("ERROR WHILE RETRIEVING PRODUCT: "+e);
         }
-        resultSet.close();
         return list;
     }
 
-    public static boolean updateProductTable(Product product){
-        boolean result = false;
-        try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getPSProduct(connection,product)){
-            int count = ps.executeUpdate();
-            if(count > 0) {
-                result = true;
+    public static Product updateProduct(String productType,String productName,int stock,int rate,int netWeight){
+        Product product = null;
+        String sql = "SELECT * FROM PRODUCT WHERE product_id = (SELECT MAX(product_id) from PRODUCT)";
+        try(Connection connection = DriverManager.getConnection(DB.dbURL)){
+            connection.setAutoCommit(false);
+            Savepoint savepoint = connection.setSavepoint();
+            try(PreparedStatement ps = updateProductPS(connection,productType,productName,stock,rate,netWeight);Statement statement = connection.createStatement()) {
+                ps.executeUpdate();
+                ResultSet resultSet = statement.executeQuery(sql);
+                while(resultSet.next()){
+                    Integer pId = resultSet.getInt("product_id");
+                    String pType = resultSet.getString("product_type");
+                    String pName = resultSet.getString("product_name");
+                    Integer pStock = resultSet.getInt("stock");
+                    Integer pRate = resultSet.getInt("rate");
+                    Integer pNetWt = resultSet.getInt("netWeight");
+                    product  = new Product(pId,pType,pName,pStock,pRate,pNetWt);
+                }
+            }catch (Exception e){
+                connection.rollback(savepoint);
+                logger.error("ERROR WHILE UPDATING NEW PRODUCT: "+e);
+            }finally {
+                connection.releaseSavepoint(savepoint);
+                connection.setAutoCommit(true);
             }
         }catch (Exception e){
             logger.error("ERROR WHILE CREATING A NEW PRODUCT: "+e);
         }
-        return result;
+        return product;
     }
 
-    private static PreparedStatement getPSProduct(Connection connection,Product product) throws SQLException{
+    private static PreparedStatement updateProductPS(Connection connection,String productType,String productName,int stock,int rate,int netWeight) throws SQLException{
         String sql = "INSERT INTO PRODUCT(product_type,product_name,stock,rate,netWeight) values(?,?,?,?,?)";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
-        preparedStatement.setString(1,product.getProductType());
-        preparedStatement.setString(2,product.getProductName());
-        preparedStatement.setInt(3,product.getLeftInStock());
-        preparedStatement.setInt(4,product.getProductRate());
-        preparedStatement.setInt(5,product.getNetWeight());
-        return preparedStatement;
-    }
-
-    public static boolean updateStock(int id,int quantity){
-        boolean result = false;
-        try (Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getProductQtyUpdateStmt(connection,id,quantity,"INC")){
-            int count = ps.executeUpdate();
-            if(count > 0){
-                result = true;
-            }
-        }catch (Exception e){
-            logger.error("COULDN'T UPDATE STOCK: "+e);
-        }
-        return result;
-    }
-
-    public static boolean reduceFromStock(int id,int quantity){
-        boolean result = false;
-        try (Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getProductQtyUpdateStmt(connection,id,quantity,"DEC")){
-            int count = ps.executeUpdate();
-            if(count > 0){
-                result = true;
-            }
-        }catch (Exception e){
-            logger.error("COULDN'T REDUCE FROM STOCK: "+e);
-        }
-        return result;
-    }
-
-    private static PreparedStatement getProductQtyUpdateStmt(Connection connection,int id, int quantity,String type) throws SQLException{
-        String sql;
-        if(type.equals("INC")){
-            sql = "UPDATE PRODUCT SET stock = (SELECT stock FROM PRODUCT WHERE product_id = ?) + ? WHERE product_id = ?";
-        }else {
-            sql = "UPDATE PRODUCT SET stock = (SELECT stock FROM PRODUCT WHERE product_id = ?) - ? WHERE product_id = ?";
-        }
-        PreparedStatement preparedStatement = connection.prepareStatement(sql);
-        preparedStatement.setInt(1,id);
-        preparedStatement.setInt(2,quantity);
-        preparedStatement.setInt(3,id);
+        preparedStatement.setString(1,productType);
+        preparedStatement.setString(2,productName);
+        preparedStatement.setInt(3,stock);
+        preparedStatement.setInt(4,rate);
+        preparedStatement.setInt(5,netWeight);
         return preparedStatement;
     }
 
@@ -237,7 +184,34 @@ public class InventoryDAO {
         return preparedStatement;
     }
 
-    public static boolean createSaleTable(){
+    public static boolean updateStock(int id,int quantity){
+        boolean result = false;
+        try (Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getProductQtyUpdateStmt(connection,id,quantity,"INC")){
+            int count = ps.executeUpdate();
+            if(count > 0){
+                result = true;
+            }
+        }catch (Exception e){
+            logger.error("COULDN'T UPDATE STOCK: "+e);
+        }
+        return result;
+    }
+
+    private static PreparedStatement getProductQtyUpdateStmt(Connection connection,int id, int quantity,String type) throws SQLException{
+        String sql;
+        if(type.equals("INC")){
+            sql = "UPDATE PRODUCT SET stock = (SELECT stock FROM PRODUCT WHERE product_id = ?) + ? WHERE product_id = ?";
+        }else {
+            sql = "UPDATE PRODUCT SET stock = (SELECT stock FROM PRODUCT WHERE product_id = ?) - ? WHERE product_id = ?";
+        }
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        preparedStatement.setInt(1,id);
+        preparedStatement.setInt(2,quantity);
+        preparedStatement.setInt(3,id);
+        return preparedStatement;
+    }
+
+    public static boolean createSaleReportTable(){
         boolean result = false;
         try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()){
             String sql = "CREATE TABLE SALE_REPORT(sale_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, product_id INT NOT NULL, sale_day DATE NOT NULL, sale_time TIME NOT NULL, quantity_sold INT NOT NULL, sale_amt INT NOT NULL, PRIMARY KEY(sale_id), FOREIGN KEY(product_id) REFERENCES PRODUCT(product_id)";
@@ -250,7 +224,7 @@ public class InventoryDAO {
         return result;
     }
 
-    public static boolean updateSaleReport(Product product,int quantitySold){
+    public static boolean reduceFromStock(Product product,int quantitySold){
         boolean result = false;
         try(Connection connection = DriverManager.getConnection(DB.dbURL)){
             connection.setAutoCommit(false);
@@ -286,8 +260,9 @@ public class InventoryDAO {
 
 
     public static List<SaleReport> getSaleRecord(LocalDate date){
-        List<SaleReport> saleList = new ArrayList<>();
+        List<SaleReport> saleList = null;
         try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement statement = getSaleRecordPS(connection,date)){
+            saleList = new ArrayList<>();
             ResultSet rs = statement.executeQuery();
             while(rs.next()){
                 Time saleTime = rs.getTime("sale_time");
@@ -302,6 +277,7 @@ public class InventoryDAO {
             }
             rs.close();
         }catch (Exception e){
+            saleList = Collections.emptyList();
             logger.error("COULDN'T RETRIEVE SALE REPORT: "+e);
         }
         return saleList;
@@ -338,21 +314,33 @@ public class InventoryDAO {
         return preparedStatement;
     }
 
-    public static boolean checkSaleReportTable() {
-        boolean result = false;
-        try(Connection connection = DriverManager.getConnection(DB.dbURL)){
-            if(checkTableExists(connection,"SALE_REPORT")){
-                result = true;
-            }else {
-                if(createSaleTable()){
-                    result = true;
-                }else {
-                    result = false;
-                }
+    public static List<Product> getProductOfType(String newSelectedType) {
+        List<Product> list = null;
+        try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getPoductOfTypePS(connection,newSelectedType)){
+            list = new ArrayList<>();
+            ResultSet resultSet = ps.executeQuery();
+            while(resultSet.next()){
+                int id = resultSet.getInt("product_id");
+                String type = resultSet.getString("product_type");
+                String name = resultSet.getString("product_name");
+                int inStock = resultSet.getInt("stock");
+                int rate = resultSet.getInt("rate");
+                int newWeight = resultSet.getInt("netWeight");
+                Product product = new Product(id,type,name,inStock,rate,newWeight);
+                list.add(product);
             }
+            resultSet.close();
         }catch (Exception e){
-            logger.error("ERROR WHILE CHECKING EXISTENCE OF SALE_REPORT TABLE: "+e);
+            list = Collections.EMPTY_LIST;
+            logger.error("ERROR WHILE RETRIEVING PARTICULAR PRODUCT_TYPE LIST: "+e);
         }
-        return result;
+        return list;
+    }
+
+    private static PreparedStatement getPoductOfTypePS(Connection connection, String newSelectedType) throws SQLException{
+        String sql = "SELECT * FOM PRODUCT WHERE product_type = ?";
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        preparedStatement.setString(1,newSelectedType);
+        return preparedStatement;
     }
 }
