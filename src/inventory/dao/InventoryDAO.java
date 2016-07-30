@@ -122,13 +122,13 @@ public class InventoryDAO {
         return list;
     }
 
-    public static Product updateProduct(String productType,String productName,int stock,int rate,int netWeight){
+    public static Product createProduct(String productType,String productName,int stock,int rate,int netWeight){
         Product product = null;
         String sql = "SELECT * FROM PRODUCT WHERE product_id = (SELECT MAX(product_id) from PRODUCT)";
         try(Connection connection = DriverManager.getConnection(DB.dbURL)){
             connection.setAutoCommit(false);
             Savepoint savepoint = connection.setSavepoint();
-            try(PreparedStatement ps = updateProductPS(connection,productType,productName,stock,rate,netWeight);Statement statement = connection.createStatement()) {
+            try(PreparedStatement ps = createProductPS(connection,productType,productName,stock,rate,netWeight);Statement statement = connection.createStatement()) {
                 ps.executeUpdate();
                 ResultSet resultSet = statement.executeQuery(sql);
                 while(resultSet.next()){
@@ -153,7 +153,7 @@ public class InventoryDAO {
         return product;
     }
 
-    private static PreparedStatement updateProductPS(Connection connection,String productType,String productName,int stock,int rate,int netWeight) throws SQLException{
+    private static PreparedStatement createProductPS(Connection connection,String productType,String productName,int stock,int rate,int netWeight) throws SQLException{
         String sql = "INSERT INTO PRODUCT(product_type,product_name,stock,rate,netWeight) values(?,?,?,?,?)";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setString(1,productType);
@@ -161,6 +161,29 @@ public class InventoryDAO {
         preparedStatement.setInt(3,stock);
         preparedStatement.setInt(4,rate);
         preparedStatement.setInt(5,netWeight);
+        return preparedStatement;
+    }
+
+    public static boolean editProduct(String pType, String pName, int pStock, int pRate, int pNetWt, int productID) {
+        boolean result = false;
+        try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getEditProductPS(connection,pType,pName,pStock,pRate,pNetWt,productID)){
+            ps.executeUpdate();
+            result = true;
+        }catch (Exception e){
+            logger.error("ERROR WHILE EDITING EXISTING PRODUCT:"+e);
+        }
+        return result;
+    }
+
+    private static PreparedStatement getEditProductPS(Connection connection, String pType, String pName, int pStock, int pRate, int pNetWt, int productID) throws SQLException{
+        String sql = "UPDATE PRODUCT SET product_type = ?, product_name = ?, stock = ?, rate = ?, netWeight = ? WHERE product_id = ?";
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        preparedStatement.setString(1,pType);
+        preparedStatement.setString(2,pName);
+        preparedStatement.setInt(3,pStock);
+        preparedStatement.setInt(4,pRate);
+        preparedStatement.setInt(5,pNetWt);
+        preparedStatement.setInt(6,productID);
         return preparedStatement;
     }
 
@@ -343,4 +366,5 @@ public class InventoryDAO {
         preparedStatement.setString(1,newSelectedType);
         return preparedStatement;
     }
+
 }

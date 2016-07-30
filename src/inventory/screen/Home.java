@@ -292,7 +292,7 @@ public class Home extends Application {
                 int pStock = Integer.parseInt(totalStock.getText().trim());
                 int pRate = Integer.parseInt(rate.getText().trim());
                 int pNetWt = Integer.parseInt(netWeight.getText().trim());
-                Product product = InventoryDAO.updateProduct(pType,pName,pStock,pRate,pNetWt);
+                Product product = InventoryDAO.createProduct(pType,pName,pStock,pRate,pNetWt);
                 if(product !=null){
                     productList.add(product);
                     productTable.refresh();
@@ -325,6 +325,110 @@ public class Home extends Application {
                 }
             }
         });
+
+        Button editButton = new Button("Edit");
+        editButton.setStyle(getButtonStyle());
+        editButton.setOnAction(e -> {
+            Product product = productTable.getSelectionModel().getSelectedItem();
+            if(product != null){
+                // Custom dialog.
+                Dialog<ButtonType> dialog = new Dialog<>();
+                dialog.setTitle("Edit Product");
+                dialog.getDialogPane().getButtonTypes().addAll(ButtonType.FINISH, ButtonType.CANCEL);
+
+                VBox vBox = new VBox();
+                vBox.setSpacing(10);
+
+                ComboBox<String> productTypeComboBox = new ComboBox<>();
+                productTypeComboBox.setPromptText("Select ProductType");
+                productTypeComboBox.setValue(product.getProductType());
+                productTypeComboBox.setItems(productTypeList);
+
+                TextField productName = new TextField();
+                productName.setPrefWidth(350);
+                productName.setPromptText("Product Name");
+                productName.setText(product.getProductName());
+
+                TextField totalStock = new TextField();
+                totalStock.setPrefWidth(350);
+                totalStock.setPromptText("Stock");
+                totalStock.setText(Integer.toString(product.getLeftInStock()));
+
+                TextField rate = new TextField();
+                rate.setPrefWidth(350);
+                rate.setPromptText("Rate");
+                rate.setText(Integer.toString(product.getProductRate()));
+
+                TextField netWeight = new TextField();
+                netWeight.setPrefWidth(350);
+                netWeight.setPromptText("Net Weight");
+                netWeight.setText(Integer.toString(product.getNetWeight()));
+
+                vBox.getChildren().addAll(productTypeComboBox,productName,totalStock,rate,netWeight);
+
+                dialog.getDialogPane().setContent(vBox);
+
+                Node finishBtn =  dialog.getDialogPane().lookupButton(ButtonType.FINISH);
+                finishBtn.setDisable(true);
+
+                productName.textProperty().addListener((observable, oldValue, newValue) -> {
+                    if(!productTypeComboBox.getValue().isEmpty() && !newValue.trim().isEmpty() && check(totalStock.getText().trim()) && check(rate.getText().trim()) && check(netWeight.getText().trim())){
+                        finishBtn.setDisable(false);
+                    }else {
+                        finishBtn.setDisable(true);
+                    }
+                });
+
+                totalStock.textProperty().addListener((observable, oldValue, newValue) -> {
+                    if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && check(newValue.trim()) && check(rate.getText().trim()) && check(netWeight.getText().trim())){
+                        finishBtn.setDisable(false);
+                    }else {
+                        finishBtn.setDisable(true);
+                    }
+                });
+
+                rate.textProperty().addListener((observable, oldValue, newValue) -> {
+                    if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && check(totalStock.getText().trim()) && check(newValue.trim()) && check(netWeight.getText().trim())){
+                        finishBtn.setDisable(false);
+                    }else {
+                        finishBtn.setDisable(true);
+                    }
+                });
+
+                netWeight.textProperty().addListener((observable, oldValue, newValue) -> {
+                    if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && check(totalStock.getText().trim()) && check(newValue.trim()) && check(newValue.trim())){
+                        finishBtn.setDisable(false);
+                    }else {
+                        finishBtn.setDisable(true);
+                    }
+                });
+
+                Optional<ButtonType> result = dialog.showAndWait();
+                if (result.isPresent() && result.get() == ButtonType.FINISH){
+                    String pType = productTypeComboBox.getValue().trim();
+                    String pName = productName.getText().trim();
+                    int pStock = Integer.parseInt(totalStock.getText().trim());
+                    int pRate = Integer.parseInt(rate.getText().trim());
+                    int pNetWt = Integer.parseInt(netWeight.getText().trim());
+                    //InventoryDAO.updateProduct(pType,pName,pStock,pRate,pNetWt);
+                    boolean rs = InventoryDAO.editProduct(pType,pName,pStock,pRate,pNetWt,product.getProductID());
+                    if(rs){
+                        // UPDATE TO NEW VALUES.
+                        product.setProductType(pType);
+                        product.setProductName(pName);
+                        product.setLeftInStock(pStock);
+                        product.setProductRate(pRate);
+                        product.setNetWeight(pNetWt);
+
+                        productTable.refresh();
+                        productTable.getSelectionModel().clearSelection();
+                    } else {
+                        // SHOW ERROR IN UI;
+                    }
+                }
+            }
+        });
+
 
         Button addButton = new Button("Update Stock");
         addButton.setStyle(getButtonStyle());

@@ -2,6 +2,7 @@ package inventory.screen;
 
 import inventory.dao.InventoryDAO;
 import inventory.model.SaleReport;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -50,8 +51,9 @@ public class SalesReport {
 
 
         saleTableView = getSaleReportTable();
-        List<SaleReport> saleList = InventoryDAO.getSaleRecord(LocalDate.now());
-        totalSaleList.addAll(saleList);
+       // List<SaleReport> saleList = InventoryDAO.getSaleRecord(LocalDate.now());
+        //totalSaleList.addAll(saleList);
+        totalSaleList = FXCollections.observableArrayList();
         saleTableView.setItems(totalSaleList);
 
         Button closeSaleViewBtn = new Button("Exit");
