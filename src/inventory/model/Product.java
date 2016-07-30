@@ -32,20 +32,40 @@ public class Product {
         return leftInStock.get();
     }
 
+    public void setLeftInStock(int leftInStock) {
+        this.leftInStock.set(leftInStock);
+    }
+
     public String getProductName() {
         return productName.get();
+    }
+
+    public void setProductName(String productName) {
+        this.productName.set(productName);
     }
 
     public int getProductRate() {
         return productRate.get();
     }
 
+    public void setProductRate(int productRate) {
+        this.productRate.set(productRate);
+    }
+
     public String getProductType() {
         return productType.get();
     }
 
+    public void setProductType(String productType) {
+        this.productType.set(productType);
+    }
+
     public int getNetWeight() {
         return netWeight.get();
+    }
+
+    public void setNetWeight(int netWeight) {
+        this.netWeight.set(netWeight);
     }
 
     public int getProductID() {
