@@ -36,6 +36,8 @@ public class Home extends Application {
 
     private TableView<Product> productTable;
 
+    private TableView<DaySale> saleTable;
+
     private ComboBox<String> comboBox;
 
     public static void main(String[] args) {
@@ -76,8 +78,8 @@ public class Home extends Application {
 
         todaySale = FXCollections.observableArrayList();
         if(InventoryDAO.checkTableExists("SALE_REPORT")){
-            DaySale daySale = InventoryDAO.getTodaySaleReport(LocalDate.now());
-            todaySale.add(daySale);
+            //DaySale daySale = InventoryDAO.getTodaySaleReport(LocalDate.now());
+            //todaySale.add(daySale);
         } else {
             InventoryDAO.createSaleReportTable();
         }
@@ -147,18 +149,20 @@ public class Home extends Application {
         comboBox.setPromptText("Product");
 
         comboBox.setOnAction(event -> {
-            String newSelectedType = comboBox.getValue();
-            List<Product> list = InventoryDAO.getProductOfType(newSelectedType);
-            if(list.isEmpty()){
-                //ErrorDialog.show("No products found for given product type !!!");
-                productList.clear();
-                productList.addAll(list);
-                productTable.refresh();
-            } else {
-                productList.clear();
-                productList.addAll(list);
-                productTable.refresh();
-            }
+            String type = comboBox.getValue();
+            List<Product> list = InventoryDAO.getProductOfType(type);
+            DaySale daySale = InventoryDAO.getTodaySaleReport(LocalDate.now(),type);
+
+            // Refresh Product tableView.
+            productList.clear();
+            productList.addAll(list);
+            productTable.refresh();
+
+            // Refresh Daily Sale Table view.
+            todaySale.clear();
+            todaySale.add(daySale);
+            saleTable.refresh();
+
         });
 
         hBox.getChildren().add(comboBox);
@@ -259,7 +263,13 @@ public class Home extends Application {
             Product product = productTable.getSelectionModel().getSelectedItem();
             if(product != null){
                 int noOfUnit = UpdateProduct.show(product,"Sell Stock","DEDUCT");
-                product.setLeftInStock(product.getLeftInStock() - noOfUnit);
+                if(noOfUnit > 0) {
+                    product.setLeftInStock(product.getLeftInStock() - noOfUnit);
+                    DaySale daySale = todaySale.get(0);
+                    daySale.setQuantitySold(daySale.getQuantitySold() + noOfUnit);
+                    daySale.setSaleAmt(daySale.getSaleAmt() + (noOfUnit * product.getProductRate()));
+                    saleTable.refresh();
+                }
             }
             productTable.refresh();
             productTable.getSelectionModel().clearSelection();
@@ -280,7 +290,7 @@ public class Home extends Application {
         vBox.setPadding(new Insets(15, 12, 15, 12));
         vBox.setSpacing(10);
 
-        TableView<DaySale> saleTable = new TableView<>();
+        saleTable = new TableView<>();
         saleTable.setItems(todaySale);
         saleTable.setPrefHeight(100);
 

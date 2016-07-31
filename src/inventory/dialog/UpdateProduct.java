@@ -42,13 +42,19 @@ public class UpdateProduct {
                     return noOfUnit;
                 }else {
                     ErrorDialog.show("Couldn't update product !!!");
+                    return 0;
                 }
             }else if(updateType.equals("DEDUCT")){
-                boolean rs = InventoryDAO.reduceFromStock(product,noOfUnit);
-                if(rs){
-                    return noOfUnit;
+                if(noOfUnit > product.getLeftInStock()){
+                    ErrorDialog.show("Please enter correct no of units !!!");
                 }else {
-                    ErrorDialog.show("Couldn't update product !!!");
+                    boolean rs = InventoryDAO.reduceFromStock(product, noOfUnit);
+                    if (rs) {
+                        return noOfUnit;
+                    } else {
+                        ErrorDialog.show("Couldn't update product !!!");
+                        return 0;
+                    }
                 }
             }
         }

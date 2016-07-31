@@ -1,23 +1,33 @@
 package inventory.model;
 
 
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+
 public class DaySale {
 
-    private Integer quantitySold;
+    private IntegerProperty quantitySold;
 
-    private Integer saleAmt;
+    private IntegerProperty saleAmt;
 
     public DaySale(Integer quantitySold,Integer saleAmt){
-        this.quantitySold = quantitySold;
-        this.saleAmt = saleAmt;
+        this.quantitySold = new SimpleIntegerProperty(quantitySold);
+        this.saleAmt = new SimpleIntegerProperty(saleAmt);
     }
 
-    public Integer getQuantitySold() {
-        return quantitySold;
+    public int getQuantitySold() {
+        return quantitySold.get();
     }
 
-    public Integer getSaleAmt() {
-        return saleAmt;
+    public void setQuantitySold(int quantitySold) {
+        this.quantitySold.set(quantitySold);
     }
 
+    public int getSaleAmt() {
+        return saleAmt.get();
+    }
+
+    public void setSaleAmt(int saleAmt) {
+        this.saleAmt.set(saleAmt);
+    }
 }

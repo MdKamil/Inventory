@@ -306,9 +306,9 @@ public class InventoryDAO {
         return preparedStatement;
     }
 
-    public static DaySale getTodaySaleReport(LocalDate date) {
+    public static DaySale getTodaySaleReport(LocalDate date,String type) {
         DaySale daySale = null;
-        try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getTodaySalePS(connection,date)){
+        try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getTodaySalePS(connection,date,type)){
             ResultSet rs = ps.executeQuery();
             while (rs.next()){
                 Integer quantitySold = rs.getInt(1);
@@ -323,25 +323,26 @@ public class InventoryDAO {
         return daySale;
     }
 
-    private static PreparedStatement getTodaySalePS(Connection connection, LocalDate date) throws SQLException{
-        String sql = "SELECT SUM(quantity_sold), SUM(sale_amt) FROM SALE_REPORT WHERE sale_day = ?";
+    private static PreparedStatement getTodaySalePS(Connection connection, LocalDate date,String type) throws SQLException{
+        String sql = "SELECT SUM(quantity_sold), SUM(sale_amt) FROM SALE_REPORT JOIN PRODUCT ON PRODUCT.product_id = SALE_REPORT.product_id WHERE sale_day = ? and PRODUCT.product_type = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setDate(1,Date.valueOf(date));
+        preparedStatement.setString(2,type);
         return preparedStatement;
     }
 
-    public static List<Product> getProductOfType(String newSelectedType) {
+    public static List<Product> getProductOfType(String type) {
         List<Product> list = new ArrayList<>();
-        try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getProductOfTypePS(connection,newSelectedType)){
+        try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getProductOfTypePS(connection,type)){
             ResultSet resultSet = ps.executeQuery();
             while(resultSet.next()){
                 int id = resultSet.getInt("product_id");
-                String type = resultSet.getString("product_type");
+                String pType = resultSet.getString("product_type");
                 String name = resultSet.getString("product_name");
                 int inStock = resultSet.getInt("stock");
                 int rate = resultSet.getInt("rate");
                 int newWeight = resultSet.getInt("netWeight");
-                Product product = new Product(id,type,name,inStock,rate,newWeight);
+                Product product = new Product(id,pType,name,inStock,rate,newWeight);
                 list.add(product);
             }
             resultSet.close();
@@ -351,10 +352,10 @@ public class InventoryDAO {
         return list;
     }
 
-    private static PreparedStatement getProductOfTypePS(Connection connection, String newSelectedType) throws SQLException{
+    private static PreparedStatement getProductOfTypePS(Connection connection, String type) throws SQLException{
         String sql = "SELECT * FROM PRODUCT WHERE product_type = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
-        preparedStatement.setString(1,newSelectedType);
+        preparedStatement.setString(1,type);
         return preparedStatement;
     }
 
