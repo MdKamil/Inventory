@@ -1,0 +1,21 @@
+<component name="ArtifactManager">
+  <artifact type="javafx" name="Inventory">
+    <output-path>$PROJECT_DIR$/out/artifacts/Inventory</output-path>
+    <properties id="javafx-properties">
+      <options>
+        <option name="appClass" value="inventory.screen.Home" />
+        <option name="description" value="" />
+        <option name="htmlParamFile" value="" />
+        <option name="paramFile" value="" />
+        <option name="title" value="" />
+        <option name="vendor" value="" />
+      </options>
+    </properties>
+    <root id="root">
+      <element id="archive" name="Inventory.jar">
+        <element id="module-output" name="Inventory" />
+      </element>
+      <element id="library" level="project" name="lib" />
+    </root>
+  </artifact>
+</component>

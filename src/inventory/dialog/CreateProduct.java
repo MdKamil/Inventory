@@ -51,34 +51,42 @@ public class CreateProduct {
         finishBtn.setDisable(true);
 
         productName.textProperty().addListener((observable, oldValue, newValue) -> {
-            if(!productTypeComboBox.getValue().isEmpty() && !newValue.trim().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(netWeight.getText().trim())){
-                finishBtn.setDisable(false);
-            }else {
-                finishBtn.setDisable(true);
+            if(productTypeComboBox.getValue() != null) {
+                if (!productTypeComboBox.getValue().isEmpty() && !newValue.trim().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(netWeight.getText().trim())) {
+                    finishBtn.setDisable(false);
+                } else {
+                    finishBtn.setDisable(true);
+                }
             }
         });
 
         totalStock.textProperty().addListener((observable, oldValue, newValue) -> {
-            if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(newValue.trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(netWeight.getText().trim())){
-                finishBtn.setDisable(false);
-            }else {
-                finishBtn.setDisable(true);
+            if(productTypeComboBox.getValue() != null) {
+                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(newValue.trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(netWeight.getText().trim())) {
+                    finishBtn.setDisable(false);
+                } else {
+                    finishBtn.setDisable(true);
+                }
             }
         });
 
         rate.textProperty().addListener((observable, oldValue, newValue) -> {
-            if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(newValue.trim()) && Validate.checkInt(netWeight.getText().trim())){
-                finishBtn.setDisable(false);
-            }else {
-                finishBtn.setDisable(true);
+            if(productTypeComboBox.getValue() != null) {
+                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(newValue.trim()) && Validate.checkInt(netWeight.getText().trim())) {
+                    finishBtn.setDisable(false);
+                } else {
+                    finishBtn.setDisable(true);
+                }
             }
         });
 
         netWeight.textProperty().addListener((observable, oldValue, newValue) -> {
-            if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(newValue.trim()) && Validate.checkInt(newValue.trim())){
-                finishBtn.setDisable(false);
-            }else {
-                finishBtn.setDisable(true);
+            if(productTypeComboBox.getValue() != null) {
+                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(newValue.trim()) && Validate.checkInt(newValue.trim())) {
+                    finishBtn.setDisable(false);
+                } else {
+                    finishBtn.setDisable(true);
+                }
             }
         });
 
