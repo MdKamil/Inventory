@@ -53,6 +53,16 @@ public class CreateProduct {
         Node finishBtn =  dialog.getDialogPane().lookupButton(ButtonType.FINISH);
         finishBtn.setDisable(true);
 
+        productTypeComboBox.setOnAction(event -> {
+            if(productTypeComboBox.getValue() != null) {
+                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().trim().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(netWeight.getText().trim())) {
+                    finishBtn.setDisable(false);
+                } else {
+                    finishBtn.setDisable(true);
+                }
+            }
+        });
+
         productName.textProperty().addListener((observable, oldValue, newValue) -> {
             if(productTypeComboBox.getValue() != null) {
                 if (!productTypeComboBox.getValue().isEmpty() && !newValue.trim().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(netWeight.getText().trim())) {
