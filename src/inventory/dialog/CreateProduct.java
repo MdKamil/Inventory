@@ -5,7 +5,10 @@ import inventory.model.Product;
 import inventory.util.Validate;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
-import javafx.scene.control.*;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 
 import java.util.Optional;
@@ -82,7 +85,7 @@ public class CreateProduct {
 
         netWeight.textProperty().addListener((observable, oldValue, newValue) -> {
             if(productTypeComboBox.getValue() != null) {
-                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(newValue.trim()) && Validate.checkInt(newValue.trim())) {
+                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(newValue.trim())) {
                     finishBtn.setDisable(false);
                 } else {
                     finishBtn.setDisable(true);
