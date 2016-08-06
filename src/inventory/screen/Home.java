@@ -202,7 +202,7 @@ public class Home extends Application {
             Product product = CreateProduct.show(productTypeList);
             if(product != null){
                 String type = comboBox.getValue();
-                if(type.equals(product.getProductType())) {
+                if(type != null && type.equals(product.getProductType())) {
                     productList.add(product);
                 }
                 productTable.refresh();
