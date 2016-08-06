@@ -205,9 +205,9 @@ public class Home extends Application {
                 if(type != null && type.equals(product.getProductType())) {
                     productList.add(product);
                 }
-                productTable.refresh();
-                productTable.getSelectionModel().clearSelection();
             }
+            productTable.refresh();
+            productTable.getSelectionModel().clearSelection();
         });
 
         Button deleteButton = new Button("Remove");
@@ -228,9 +228,9 @@ public class Home extends Application {
                     }else {
                         ErrorDialog.show("Couldn't remove product !!!");
                     }
-                    productTable.refresh();
-                    productTable.getSelectionModel().clearSelection();
                 }
+                productTable.refresh();
+                productTable.getSelectionModel().clearSelection();
             }
         });
 
