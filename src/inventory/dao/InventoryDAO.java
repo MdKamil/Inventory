@@ -23,7 +23,7 @@ public class InventoryDAO {
             ResultSet tables = dbm.getTables(null, null, tableName, null);
             if (tables.next()) {
                 // Table exists.
-                logger.info("TABLE " + tableName + " EXISTS IN DB");
+                //logger.info("TABLE " + tableName + " EXISTS IN DB");
                 result = true;
             } else {
                 // Table does not exist.
@@ -99,7 +99,7 @@ public class InventoryDAO {
                 result = true;
             }catch (SQLException e){
                 connection.rollback(savepoint);
-                logger.info("ERROR: "+e);
+                logger.error("ERROR: "+e);
             }finally {
                 connection.releaseSavepoint(savepoint);
                 connection.setAutoCommit(true);
