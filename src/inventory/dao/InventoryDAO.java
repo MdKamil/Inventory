@@ -38,7 +38,7 @@ public class InventoryDAO {
     public static boolean createProductTypeTable() {
         boolean result = false;
         try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()) {
-            String sql = "CREATE TABLE PRODUCT_TYPE(type_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, type_name VARCHAR(100) NOT NULL, PRIMARY KEY(type_name))";
+            String sql = "CREATE TABLE PRODUCT_TYPE(type_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, type_name VARCHAR(100) NOT NULL, CONSTRAINT type_pk PRIMARY KEY(type_name))";
             statement.executeUpdate(sql);
             logger.info("PRODUCT_TYPE TABLE CREATED SUCCESSFULLY");
             result = true;
@@ -84,11 +84,26 @@ public class InventoryDAO {
 
     public static boolean createProductTable() {
         boolean result = false;
-        try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()) {
-            String sql = "CREATE TABLE PRODUCT(product_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, product_type VARCHAR(100) NOT NULL, product_name VARCHAR(100) NOT NULL, stock INT NOT NULL, rate INT NOT NULL, netWeight INT NOT NULL, PRIMARY KEY(product_id), FOREIGN KEY(product_type) REFERENCES PRODUCT_TYPE(type_name))";
-            statement.executeUpdate(sql);
-            logger.info("PRODUCT TABLE CREATED SUCCESSFULLY");
-            result = true;
+        try(Connection connection = DriverManager.getConnection(DB.dbURL)) {
+            connection.setAutoCommit(false);
+            Savepoint savepoint = connection.setSavepoint();
+            try(Statement statement = connection.createStatement();Statement indexStmt = connection.createStatement()){
+                String sql = "CREATE TABLE PRODUCT(product_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, product_type VARCHAR(100) NOT NULL, product_name VARCHAR(100) NOT NULL, in_stock INT NOT NULL, product_rate INT NOT NULL, net_weight INT NOT NULL, CONSTRAINT product_pk PRIMARY KEY (product_id), CONSTRAINT product_fk FOREIGN KEY (product_type) REFERENCES product_type(type_name) ON DELETE CASCADE))";
+                statement.executeUpdate(sql);
+                logger.info("PRODUCT TABLE CREATED SUCCESSFULLY");
+
+                String indexSql = "CREATE INDEX product_index ON product(product_type);";
+                indexStmt.executeUpdate(indexSql);
+                logger.info("INDEX CREATED FOR PRODUCT TABLE");
+
+                result = true;
+            }catch (SQLException e){
+                connection.rollback(savepoint);
+                logger.info("ERROR: "+e);
+            }finally {
+                connection.releaseSavepoint(savepoint);
+                connection.setAutoCommit(true);
+            }
         } catch (Exception e){
             logger.error("COULDN'T CREATE PRODUCT TABLE: "+e);
         }
@@ -104,9 +119,9 @@ public class InventoryDAO {
                 int id = resultSet.getInt("product_id");
                 String type = resultSet.getString("product_type");
                 String name = resultSet.getString("product_name");
-                int inStock = resultSet.getInt("stock");
-                int rate = resultSet.getInt("rate");
-                int newWeight = resultSet.getInt("netWeight");
+                int inStock = resultSet.getInt("in_stock");
+                int rate = resultSet.getInt("product_rate");
+                int newWeight = resultSet.getInt("net_weight");
                 Product product = new Product(id,type,name,inStock,rate,newWeight);
                 list.add(product);
             }
@@ -130,14 +145,14 @@ public class InventoryDAO {
                     Integer pId = resultSet.getInt("product_id");
                     String pType = resultSet.getString("product_type");
                     String pName = resultSet.getString("product_name");
-                    Integer pStock = resultSet.getInt("stock");
-                    Integer pRate = resultSet.getInt("rate");
-                    Integer pNetWt = resultSet.getInt("netWeight");
+                    Integer pStock = resultSet.getInt("in_stock");
+                    Integer pRate = resultSet.getInt("product_rate");
+                    Integer pNetWt = resultSet.getInt("net_weight");
                     product  = new Product(pId,pType,pName,pStock,pRate,pNetWt);
                 }
             }catch (Exception e){
                 connection.rollback(savepoint);
-                logger.error("ERROR WHILE UPDATING NEW PRODUCT: "+e);
+                logger.error("ERROR: "+e);
             }finally {
                 connection.releaseSavepoint(savepoint);
                 connection.setAutoCommit(true);
@@ -149,7 +164,7 @@ public class InventoryDAO {
     }
 
     private static PreparedStatement createProductPS(Connection connection,String productType,String productName,int stock,int rate,int netWeight) throws SQLException{
-        String sql = "INSERT INTO PRODUCT(product_type,product_name,stock,rate,netWeight) values(?,?,?,?,?)";
+        String sql = "INSERT INTO PRODUCT(product_type,product_name,in_stock,product_rate,net_weight) values(?,?,?,?,?)";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setString(1,productType);
         preparedStatement.setString(2,productName);
@@ -159,19 +174,30 @@ public class InventoryDAO {
         return preparedStatement;
     }
 
-    public static boolean editProduct(String pType, String pName, int pStock, int pRate, int pNetWt, int productID) {
+    public static boolean editProduct(String pType,String pName,int pStock,int pRate,int pNetWt,int productID) {
         boolean result = false;
-        try(Connection connection = DriverManager.getConnection(DB.dbURL);PreparedStatement ps = getEditProductPS(connection,pType,pName,pStock,pRate,pNetWt,productID)){
-            ps.executeUpdate();
-            result = true;
+        try(Connection connection = DriverManager.getConnection(DB.dbURL)){
+            connection.setAutoCommit(false);
+            Savepoint savepoint = connection.setSavepoint();
+            try(PreparedStatement ps = getEditProductPS(connection,pType,pName,pStock,pRate,pNetWt,productID);PreparedStatement ps2 = getEditSalePS(connection,pType,pName,pRate,productID)){
+                ps.executeUpdate();
+                ps2.executeUpdate();
+                result = true;
+            }catch (SQLException e){
+                connection.rollback();
+                logger.error("ERROR: "+e);
+            }finally {
+                connection.releaseSavepoint(savepoint);
+                connection.setAutoCommit(true);
+            }
         }catch (Exception e){
             logger.error("ERROR WHILE EDITING EXISTING PRODUCT:"+e);
         }
         return result;
     }
 
-    private static PreparedStatement getEditProductPS(Connection connection, String pType, String pName, int pStock, int pRate, int pNetWt, int productID) throws SQLException{
-        String sql = "UPDATE PRODUCT SET product_type = ?, product_name = ?, stock = ?, rate = ?, netWeight = ? WHERE product_id = ?";
+    private static PreparedStatement getEditProductPS(Connection connection,String pType,String pName,int pStock,int pRate,int pNetWt,int productID) throws SQLException{
+        String sql = "UPDATE PRODUCT SET product_type = ?, product_name = ?, in_stock = ?, product_rate = ?, net_weight = ? WHERE product_id = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setString(1,pType);
         preparedStatement.setString(2,pName);
@@ -181,6 +207,18 @@ public class InventoryDAO {
         preparedStatement.setInt(6,productID);
         return preparedStatement;
     }
+
+
+    private static PreparedStatement getEditSalePS(Connection connection,String pType,String pName,int pRate,int productID) throws SQLException{
+        String sql = "UPDATE SALE_REPORT SET product_type = ?, product_name = ?, product_rate = ? WHERE product_id = ?";
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        preparedStatement.setString(1,pType);
+        preparedStatement.setString(2,pName);
+        preparedStatement.setInt(3,pRate);
+        preparedStatement.setInt(4,productID);
+        return preparedStatement;
+    }
+
 
     public static boolean deleteProduct(int id){
         boolean result = false;
@@ -195,7 +233,7 @@ public class InventoryDAO {
         return result;
     }
 
-    private static PreparedStatement getDeletePS(Connection connection, int id) throws SQLException{
+    private static PreparedStatement getDeletePS(Connection connection,int id) throws SQLException{
         String sql = "DELETE FROM PRODUCT WHERE product_id = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setInt(1,id);
@@ -215,12 +253,12 @@ public class InventoryDAO {
         return result;
     }
 
-    private static PreparedStatement getProductQtyUpdateStmt(Connection connection,int id, int quantity,String type) throws SQLException{
+    private static PreparedStatement getProductQtyUpdateStmt(Connection connection,int id,int quantity,String type) throws SQLException{
         String sql;
         if(type.equals("INC")){
-            sql = "UPDATE PRODUCT SET stock = (SELECT stock FROM PRODUCT WHERE product_id = ?) + ? WHERE product_id = ?";
+            sql = "UPDATE PRODUCT SET in_stock = (SELECT in_stock FROM PRODUCT WHERE product_id = ?) + ? WHERE product_id = ?";
         }else {
-            sql = "UPDATE PRODUCT SET stock = (SELECT stock FROM PRODUCT WHERE product_id = ?) - ? WHERE product_id = ?";
+            sql = "UPDATE PRODUCT SET in_stock = (SELECT in_stock FROM PRODUCT WHERE product_id = ?) - ? WHERE product_id = ?";
         }
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setInt(1,id);
@@ -232,7 +270,7 @@ public class InventoryDAO {
     public static boolean createSaleReportTable(){
         boolean result = false;
         try(Connection connection = DriverManager.getConnection(DB.dbURL);Statement statement = connection.createStatement()){
-            String sql = "CREATE TABLE SALE_REPORT(sale_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, product_id INT NOT NULL, sale_day DATE NOT NULL, sale_time TIME NOT NULL, quantity_sold INT NOT NULL, sale_amt INT NOT NULL, PRIMARY KEY(sale_id), FOREIGN KEY(product_id) REFERENCES PRODUCT(product_id))";
+            String sql = "CREATE TABLE SALE_REPORT(sale_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, sale_day DATE NOT NULL, sale_time TIME NOT NULL, product_id INT, product_type VARCHAR(100) NOT NULL, product_name VARCHAR(100) NOT NULL, product_rate INT NOT NULL, quantity_sold INT NOT NULL, sale_amt INT NOT NULL, CONSTRAINT sale_pk PRIMARY KEY (sale_id), CONSTRAINT sale_fk FOREIGN KEY (product_id) REFERENCES product(product_id) ON DELETE SET NULL)";
             int count = statement.executeUpdate(sql);
             result = true;
             logger.error("SUCCESSFULLY CREATED SALE_REPORT TABLE    ");
@@ -266,13 +304,16 @@ public class InventoryDAO {
     }
 
     private static PreparedStatement getPSSaleReport(Connection connection,Product product,int quantitySold) throws SQLException{
-        String sql = "INSERT INTO SALE_REPORT(product_id,sale_day,sale_time,quantity_sold,sale_amt) VALUES(?,?,?,?,?)";
+        String sql = "INSERT INTO SALE_REPORT(sale_day,sale_time,product_id,product_type,product_name,product_rate,quantity_sold,sale_amt) VALUES(?,?,?,?,?,?,?,?)";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
-        preparedStatement.setInt(1,product.getProductID());
-        preparedStatement.setDate(2,Date.valueOf(LocalDate.now()));
-        preparedStatement.setTime(3,Time.valueOf(LocalTime.now()));
-        preparedStatement.setInt(4,quantitySold);
-        preparedStatement.setInt(5,product.getProductRate()*quantitySold);
+        preparedStatement.setDate(1,Date.valueOf(LocalDate.now()));
+        preparedStatement.setTime(2,Time.valueOf(LocalTime.now()));
+        preparedStatement.setInt(3,product.getProductID());
+        preparedStatement.setString(4,product.getProductType());
+        preparedStatement.setString(5,product.getProductName());
+        preparedStatement.setInt(6,product.getProductRate());
+        preparedStatement.setInt(7,quantitySold);
+        preparedStatement.setInt(8,product.getProductRate()*quantitySold);
         return preparedStatement;
     }
 
@@ -285,7 +326,7 @@ public class InventoryDAO {
                 Time saleTime = rs.getTime("sale_time");
                 String productType = rs.getString("product_type");
                 String productName = rs.getString("product_name");
-                Integer productRate = rs.getInt("rate");
+                Integer productRate = rs.getInt("product_rate");
                 Integer quantitySold = rs.getInt("quantity_sold");
                 Integer saleAmt = rs.getInt("sale_amt");
 
@@ -300,7 +341,7 @@ public class InventoryDAO {
     }
 
     private static PreparedStatement getSaleRecordPS(Connection connection,LocalDate date) throws SQLException{
-        String sql = "SELECT product_type,product_name,rate,sale_time,quantity_sold,sale_amt FROM PRODUCT JOIN SALE_REPORT ON PRODUCT.product_id = SALE_REPORT.product_id WHERE SALE_REPORT.sale_day = ?";
+        String sql = "SELECT sale_time,product_type,product_name,product_rate,quantity_sold,sale_amt FROM SALE_REPORT WHERE sale_day = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setDate(1,Date.valueOf(date));
         return preparedStatement;
@@ -323,8 +364,8 @@ public class InventoryDAO {
         return daySale;
     }
 
-    private static PreparedStatement getTodaySalePS(Connection connection, LocalDate date,String type) throws SQLException{
-        String sql = "SELECT SUM(quantity_sold), SUM(sale_amt) FROM SALE_REPORT JOIN PRODUCT ON PRODUCT.product_id = SALE_REPORT.product_id WHERE sale_day = ? and PRODUCT.product_type = ?";
+    private static PreparedStatement getTodaySalePS(Connection connection,LocalDate date,String type) throws SQLException{
+        String sql = "SELECT SUM(quantity_sold), SUM(sale_amt) FROM SALE_REPORT WHERE sale_day = ? and product_type = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setDate(1,Date.valueOf(date));
         preparedStatement.setString(2,type);
@@ -339,8 +380,8 @@ public class InventoryDAO {
                 int id = resultSet.getInt("product_id");
                 String pType = resultSet.getString("product_type");
                 String name = resultSet.getString("product_name");
-                int inStock = resultSet.getInt("stock");
-                int rate = resultSet.getInt("rate");
+                int inStock = resultSet.getInt("in_stock");
+                int rate = resultSet.getInt("product_rate");
                 int newWeight = resultSet.getInt("netWeight");
                 Product product = new Product(id,pType,name,inStock,rate,newWeight);
                 list.add(product);
@@ -352,7 +393,7 @@ public class InventoryDAO {
         return list;
     }
 
-    private static PreparedStatement getProductOfTypePS(Connection connection, String type) throws SQLException{
+    private static PreparedStatement getProductOfTypePS(Connection connection,String type) throws SQLException{
         String sql = "SELECT * FROM PRODUCT WHERE product_type = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         preparedStatement.setString(1,type);

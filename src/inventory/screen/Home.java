@@ -150,19 +150,20 @@ public class Home extends Application {
 
         comboBox.setOnAction(event -> {
             String type = comboBox.getValue();
-            List<Product> list = InventoryDAO.getProductOfType(type);
-            DaySale daySale = InventoryDAO.getTodaySaleReport(LocalDate.now(),type);
+            if(type != null) {
+                List<Product> list = InventoryDAO.getProductOfType(type);
+                DaySale daySale = InventoryDAO.getTodaySaleReport(LocalDate.now(), type);
 
-            // Refresh Product tableView.
-            productList.clear();
-            productList.addAll(list);
-            productTable.refresh();
+                // Refresh Product tableView.
+                productList.clear();
+                productList.addAll(list);
+                productTable.refresh();
 
-            // Refresh Daily Sale Table view.
-            todaySale.clear();
-            todaySale.add(daySale);
-            saleTable.refresh();
-
+                // Refresh Daily Sale Table view.
+                todaySale.clear();
+                todaySale.add(daySale);
+                saleTable.refresh();
+            }
         });
 
         hBox.getChildren().add(comboBox);
