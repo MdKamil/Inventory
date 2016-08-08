@@ -88,7 +88,7 @@ public class InventoryDAO {
             connection.setAutoCommit(false);
             Savepoint savepoint = connection.setSavepoint();
             try(Statement statement = connection.createStatement();Statement indexStmt = connection.createStatement()){
-                String sql = "CREATE TABLE PRODUCT(product_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, product_type VARCHAR(100) NOT NULL, product_name VARCHAR(100) NOT NULL, in_stock INT NOT NULL, product_rate INT NOT NULL, net_weight INT NOT NULL, CONSTRAINT product_pk PRIMARY KEY (product_id), CONSTRAINT product_fk FOREIGN KEY (product_type) REFERENCES product_type(type_name) ON DELETE CASCADE)";
+                String sql = "CREATE TABLE PRODUCT(product_id INT NOT NULL GENERATED ALWAYS AS IDENTITY, product_type VARCHAR(100) NOT NULL, product_name VARCHAR(100) NOT NULL, in_stock INT NOT NULL, product_rate INT NOT NULL, net_weight INT, CONSTRAINT product_pk PRIMARY KEY (product_id), CONSTRAINT product_fk FOREIGN KEY (product_type) REFERENCES product_type(type_name) ON DELETE CASCADE)";
                 statement.executeUpdate(sql);
                 logger.info("PRODUCT TABLE CREATED SUCCESSFULLY");
 

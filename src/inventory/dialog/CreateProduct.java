@@ -55,7 +55,7 @@ public class CreateProduct {
 
         productTypeComboBox.setOnAction(event -> {
             if(productTypeComboBox.getValue() != null) {
-                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().trim().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(netWeight.getText().trim())) {
+                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().trim().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && (Validate.checkInt(netWeight.getText().trim()) || netWeight.getText().isEmpty())) {
                     finishBtn.setDisable(false);
                 } else {
                     finishBtn.setDisable(true);
@@ -65,7 +65,7 @@ public class CreateProduct {
 
         productName.textProperty().addListener((observable, oldValue, newValue) -> {
             if(productTypeComboBox.getValue() != null) {
-                if (!productTypeComboBox.getValue().isEmpty() && !newValue.trim().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(netWeight.getText().trim())) {
+                if (!productTypeComboBox.getValue().isEmpty() && !newValue.trim().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && (Validate.checkInt(netWeight.getText().trim()) || netWeight.getText().isEmpty())) {
                     finishBtn.setDisable(false);
                 } else {
                     finishBtn.setDisable(true);
@@ -75,7 +75,7 @@ public class CreateProduct {
 
         totalStock.textProperty().addListener((observable, oldValue, newValue) -> {
             if(productTypeComboBox.getValue() != null) {
-                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(newValue.trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(netWeight.getText().trim())) {
+                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(newValue.trim()) && Validate.checkInt(rate.getText().trim()) && (Validate.checkInt(netWeight.getText().trim()) || netWeight.getText().isEmpty())) {
                     finishBtn.setDisable(false);
                 } else {
                     finishBtn.setDisable(true);
@@ -85,7 +85,7 @@ public class CreateProduct {
 
         rate.textProperty().addListener((observable, oldValue, newValue) -> {
             if(productTypeComboBox.getValue() != null) {
-                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(newValue.trim()) && Validate.checkInt(netWeight.getText().trim())) {
+                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(newValue.trim()) && (Validate.checkInt(netWeight.getText().trim()) || netWeight.getText().isEmpty())) {
                     finishBtn.setDisable(false);
                 } else {
                     finishBtn.setDisable(true);
@@ -95,7 +95,7 @@ public class CreateProduct {
 
         netWeight.textProperty().addListener((observable, oldValue, newValue) -> {
             if(productTypeComboBox.getValue() != null) {
-                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(newValue.trim())) {
+                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && (Validate.checkInt(newValue.trim()) || newValue.isEmpty())) {
                     finishBtn.setDisable(false);
                 } else {
                     finishBtn.setDisable(true);
@@ -109,7 +109,10 @@ public class CreateProduct {
             String pName = productName.getText().trim();
             int pStock = Integer.parseInt(totalStock.getText().trim());
             int pRate = Integer.parseInt(rate.getText().trim());
-            int pNetWt = Integer.parseInt(netWeight.getText().trim());
+            int pNetWt = 0;
+            if(!netWeight.getText().trim().equals("")){
+                pNetWt = Integer.parseInt(netWeight.getText().trim());
+            }
             product = InventoryDAO.createProduct(pType,pName,pStock,pRate,pNetWt);
             if(product == null){
                 ErrorDialog.show("Couldn't create product !!!");

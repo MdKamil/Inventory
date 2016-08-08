@@ -54,8 +54,18 @@ public class EditProduct {
         Node finishBtn =  dialog.getDialogPane().lookupButton(ButtonType.FINISH);
         finishBtn.setDisable(true);
 
+        productTypeComboBox.setOnAction(event -> {
+            if(productTypeComboBox.getValue() != null) {
+                if (!productTypeComboBox.getValue().isEmpty() && !productName.getText().trim().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && (Validate.checkInt(netWeight.getText().trim()) || netWeight.getText().isEmpty())) {
+                    finishBtn.setDisable(false);
+                } else {
+                    finishBtn.setDisable(true);
+                }
+            }
+        });
+
         productName.textProperty().addListener((observable, oldValue, newValue) -> {
-            if(!productTypeComboBox.getValue().isEmpty() && !newValue.trim().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(netWeight.getText().trim())){
+            if(!productTypeComboBox.getValue().isEmpty() && !newValue.trim().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && (Validate.checkInt(netWeight.getText().trim()) || netWeight.getText().isEmpty())){
                 finishBtn.setDisable(false);
             }else {
                 finishBtn.setDisable(true);
@@ -63,7 +73,7 @@ public class EditProduct {
         });
 
         totalStock.textProperty().addListener((observable, oldValue, newValue) -> {
-            if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(newValue.trim()) && Validate.checkInt(rate.getText().trim()) && Validate.checkInt(netWeight.getText().trim())){
+            if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(newValue.trim()) && Validate.checkInt(rate.getText().trim()) && (Validate.checkInt(netWeight.getText().trim()) || netWeight.getText().isEmpty())){
                 finishBtn.setDisable(false);
             }else {
                 finishBtn.setDisable(true);
@@ -71,7 +81,7 @@ public class EditProduct {
         });
 
         rate.textProperty().addListener((observable, oldValue, newValue) -> {
-            if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(newValue.trim()) && Validate.checkInt(netWeight.getText().trim())){
+            if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(newValue.trim()) && (Validate.checkInt(netWeight.getText().trim()) || netWeight.getText().isEmpty())){
                 finishBtn.setDisable(false);
             }else {
                 finishBtn.setDisable(true);
@@ -79,7 +89,7 @@ public class EditProduct {
         });
 
         netWeight.textProperty().addListener((observable, oldValue, newValue) -> {
-            if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(newValue.trim()) && Validate.checkInt(newValue.trim())){
+            if(!productTypeComboBox.getValue().isEmpty() && !productName.getText().isEmpty() && Validate.checkInt(totalStock.getText().trim()) && Validate.checkInt(rate.getText().trim()) && (Validate.checkInt(newValue.trim()) || newValue.isEmpty())){
                 finishBtn.setDisable(false);
             }else {
                 finishBtn.setDisable(true);
@@ -92,7 +102,11 @@ public class EditProduct {
             String pName = productName.getText().trim();
             int pStock = Integer.parseInt(totalStock.getText().trim());
             int pRate = Integer.parseInt(rate.getText().trim());
-            int pNetWt = Integer.parseInt(netWeight.getText().trim());
+            int pNetWt = 0;
+            if(!netWeight.getText().trim().equals("")){
+                pNetWt = Integer.parseInt(netWeight.getText().trim());
+            }
+            //int pNetWt = Integer.parseInt(netWeight.getText().trim());
             //InventoryDAO.updateProduct(pType,pName,pStock,pRate,pNetWt);
             boolean rs = InventoryDAO.editProduct(pType,pName,pStock,pRate,pNetWt,product.getProductID());
             if(rs){
